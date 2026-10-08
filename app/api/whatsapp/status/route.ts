@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { getInstanceState } from '@/lib/green-api';
+import { getInstanceState, getWaSettings } from '@/lib/green-api';
 
 function mapState(state: string | null) {
   if (!state) return 'creating';
@@ -33,10 +33,7 @@ export async function GET() {
     if (credentialError) throw credentialError;
 
     if (!credential) {
-      return NextResponse.json({
-        status: 'disconnected',
-        phoneNumber: null,
-      });
+      return NextResponse.json({ status: 'disconnected', phoneNumber: null });
     }
 
     const state = await getInstanceState({
@@ -46,17 +43,22 @@ export async function GET() {
     });
 
     const status = mapState(state);
+    let phoneNumber: string | null = null;
 
-    const { data: currentConnection } = await admin
-      .from('whatsapp_connections')
-      .select('phone_number')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    if (status === 'connected') {
+      const wa = await getWaSettings({
+        apiUrl: credential.api_url,
+        idInstance: credential.id_instance,
+        apiTokenInstance: credential.api_token_instance,
+      });
+      phoneNumber = wa.phone || null;
+    }
 
     await admin
       .from('whatsapp_connections')
       .update({
         status,
+        phone_number: phoneNumber,
         connected_at: status === 'connected' ? new Date().toISOString() : null,
         last_error: status === 'error' ? state : null,
       })
@@ -65,7 +67,7 @@ export async function GET() {
     return NextResponse.json({
       status,
       providerState: state,
-      phoneNumber: currentConnection?.phone_number ?? null,
+      phoneNumber,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'unknown_error';
