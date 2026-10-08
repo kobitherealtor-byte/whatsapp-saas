@@ -160,3 +160,103 @@ export async function getChats(input: {
     archive?: boolean;
   }>;
 }
+
+
+export function normalizePersonalChatId(phone: string) {
+  const digits = phone.replace(/\D/g, '');
+
+  if (!digits) throw new Error('Invalid recipient phone number.');
+
+  if (digits.startsWith('0')) {
+    return `972${digits.slice(1)}@c.us`;
+  }
+
+  return `${digits}@c.us`;
+}
+
+export async function sendGreenApiText(input: {
+  apiUrl: string;
+  idInstance: string;
+  apiTokenInstance: string;
+  chatId: string;
+  message: string;
+}) {
+  const response = await fetch(
+    `${input.apiUrl.replace(/\/$/, '')}/waInstance${input.idInstance}/sendMessage/${input.apiTokenInstance}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      body: JSON.stringify({
+        chatId: input.chatId,
+        message: input.message,
+      }),
+    },
+  );
+
+  const raw = await response.text();
+  let data: { idMessage?: string; message?: string } = {};
+
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch {
+    data = { message: raw };
+  }
+
+  if (!response.ok || !data.idMessage) {
+    throw new Error(
+      data.message || `GREEN API sendMessage failed with HTTP ${response.status}`,
+    );
+  }
+
+  return data.idMessage;
+}
+
+export async function sendGreenApiFileByUrl(input: {
+  apiUrl: string;
+  idInstance: string;
+  apiTokenInstance: string;
+  chatId: string;
+  urlFile: string;
+  caption?: string;
+}) {
+  const parsedUrl = new URL(input.urlFile);
+  const rawFileName = parsedUrl.pathname.split('/').filter(Boolean).pop();
+  const fileName = rawFileName ? decodeURIComponent(rawFileName) : 'file.bin';
+
+  if (!fileName.includes('.')) {
+    throw new Error('Media URL must include a file extension.');
+  }
+
+  const response = await fetch(
+    `${input.apiUrl.replace(/\/$/, '')}/waInstance${input.idInstance}/sendFileByUrl/${input.apiTokenInstance}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      body: JSON.stringify({
+        chatId: input.chatId,
+        urlFile: input.urlFile,
+        fileName,
+        caption: input.caption || undefined,
+      }),
+    },
+  );
+
+  const raw = await response.text();
+  let data: { idMessage?: string; message?: string } = {};
+
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch {
+    data = { message: raw };
+  }
+
+  if (!response.ok || !data.idMessage) {
+    throw new Error(
+      data.message || `GREEN API sendFileByUrl failed with HTTP ${response.status}`,
+    );
+  }
+
+  return data.idMessage;
+}
