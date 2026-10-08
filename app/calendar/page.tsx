@@ -1,112 +1,39 @@
 'use client';
 
-import React from 'react';
-import Link from 'next/link';
+import { useState } from 'react';
+import AppShell from '@/components/AppShell';
+
+const seedEvents = [
+  { id: '1', title: 'הודעה ליוסי כהן', day: 8, type: 'scheduler', time: '15:30' },
+  { id: '2', title: 'מבצע סוף שבוע', day: 8, type: 'publisher', time: '17:00' },
+  { id: '3', title: 'הודעה למיכל לוי', day: 12, type: 'scheduler', time: '10:00' },
+  { id: '4', title: 'עדכון שבועי', day: 15, type: 'publisher', time: '09:00' },
+  { id: '5', title: 'ברכת שבת שלום', day: 23, type: 'publisher', time: '14:00' },
+];
 
 export default function CalendarPage() {
-  const events = [
-    { id: '1', title: 'הודעה ליוסי כהן', day: 8, type: 'scheduler', time: '15:30' },
-    { id: '2', title: 'קמפיין VIP לקבוצות', day: 8, type: 'publisher', time: '17:00' },
-    { id: '3', title: 'הודעה למיכל לוי', day: 12, type: 'scheduler', time: '10:00' },
-    { id: '4', title: 'פרסום קבוצת נטוורקינג', day: 15, type: 'publisher', time: '09:00' },
-    { id: '5', title: 'ברכת שבת שלום לקבוצות', day: 23, type: 'publisher', time: '14:00' },
-  ];
-
+  const [selected, setSelected] = useState<(typeof seedEvents)[number] | null>(null);
   const daysInMonth = Array.from({ length: 31 }, (_, i) => i + 1);
   const blanks = Array.from({ length: 4 }, (_, i) => i);
   const daysOfWeek = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
 
-  const handleEventClick = (title: string, time: string) => {
-    alert(`עריכת אירוע: ${title}\nשעת שליחה: ${time}\n\nבגרסה המלאה כאן ייפתח חלון עריכה מהירה.`);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 p-6 text-right" dir="rtl">
-      <div className="max-w-6xl mx-auto">
-        
-        {/* כותרת עליונה */}
-        <header className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-              <Link href="/dashboard" className="hover:underline text-emerald-600">לוח בקרה</Link>
-              <span>/</span>
-              <span>יומן משימות</span>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900">יומן הפצות מתוזמנות</h1>
-            <p className="text-gray-500 text-sm">מבט על של כל ההודעות והקמפיינים המתוכננים לחודש זה</p>
-          </div>
-          
-          <div className="flex items-center gap-3 bg-white p-2 rounded-xl shadow-sm border border-gray-100">
-            <span className="text-lg font-bold text-gray-800 px-2">אוקטובר 2026</span>
-          </div>
-        </header>
-
-        {/* מקרא */}
-        <div className="flex gap-4 mb-4 text-xs font-medium text-gray-600 bg-white p-3 rounded-lg border border-gray-100 inline-flex">
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-emerald-500 block"></span>
-            <span>הודעה אישית (Scheduler)</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-blue-500 block"></span>
-            <span>פרסום בקבוצות (Publisher)</span>
-          </div>
-        </div>
-
-        {/* גריד היומן */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          
-          <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50 text-center font-bold text-gray-700 text-sm py-3">
-            {daysOfWeek.map(day => (
-              <div key={day}>{day}</div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-7 grid-rows-5 divide-x divide-y divide-reverse divide-gray-100 min-h-[600px] bg-gray-50/30">
-            
-            {blanks.map(blank => (
-              <div key={`blank-${blank}`} className="bg-gray-50/50 p-2 border-b border-gray-100"></div>
-            ))}
-
-            {daysInMonth.map(day => {
-              const dayEvents = events.filter(e => e.day === day);
+    <AppShell>
+      <div className="pb-20 lg:pb-0">
+        <header className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><h1 className="text-3xl font-black">יומן תזמונים</h1><p className="mt-1 text-slate-500">מבט אחד על הודעות אישיות וקמפיינים לקבוצות.</p></div><div className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold">אוקטובר 2026</div></header>
+        <div className="mb-4 flex flex-wrap gap-4 text-xs font-bold text-slate-600"><span className="flex items-center gap-2"><i className="h-3 w-3 rounded-full bg-emerald-500" /> הודעה אישית</span><span className="flex items-center gap-2"><i className="h-3 w-3 rounded-full bg-blue-500" /> פרסום לקבוצות</span></div>
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="min-w-[760px]">
+            <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50 text-center text-xs font-bold text-slate-500">{daysOfWeek.map((day) => <div key={day} className="p-3">{day}</div>)}</div>
+            <div className="grid grid-cols-7">{blanks.map((blank) => <div key={`blank-${blank}`} className="min-h-28 border-b border-l border-slate-100 bg-slate-50/50" />)}{daysInMonth.map((day) => {
+              const dayEvents = seedEvents.filter((event) => event.day === day);
               const isToday = day === 8;
-
-              return (
-                <div 
-                  key={day} 
-                  className={`p-2 bg-white transition flex flex-col justify-between border-b border-gray-100 min-h-[100px] ${isToday ? 'bg-emerald-50/30 ring-1 ring-emerald-500 ring-inset' : 'hover:bg-gray-50/50'}`}
-                >
-                  <div className="flex justify-between items-center mb-1">
-                    <span className={`text-sm font-bold p-1 rounded-md min-w-[24px] text-center ${isToday ? 'bg-emerald-600 text-white' : 'text-gray-700'}`}>
-                      {day}
-                    </span>
-                    {isToday && <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">היום</span>}
-                  </div>
-
-                  <div className="space-y-1 flex-1 overflow-y-auto max-h-[80px]">
-                    {dayEvents.map(event => (
-                      <button
-                        key={event.id}
-                        onClick={() => handleEventClick(event.title, event.time)}
-                        className={`w-full text-right text-[11px] font-medium p-1 rounded border transition truncate block ${
-                          event.type === 'scheduler' 
-                            ? 'bg-emerald-50 text-emerald-800 border-emerald-100 hover:bg-emerald-100' 
-                            : 'bg-blue-50 text-blue-800 border-blue-100 hover:bg-blue-100'
-                        }`}
-                      >
-                        <span className="font-bold ml-1">[{event.time}]</span>
-                        {event.title}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+              return <div key={day} className={`min-h-28 border-b border-l border-slate-100 p-2 ${isToday ? 'bg-emerald-50/40' : 'bg-white'}`}><div className="mb-2 flex items-center justify-between"><span className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-black ${isToday ? 'bg-emerald-600 text-white' : 'text-slate-700'}`}>{day}</span>{isToday && <span className="text-[10px] font-bold text-emerald-700">היום</span>}</div><div className="space-y-1">{dayEvents.map((event) => <button key={event.id} onClick={() => setSelected(event)} className={`block w-full truncate rounded-lg px-2 py-1.5 text-right text-[11px] font-bold ${event.type === 'scheduler' ? 'bg-emerald-50 text-emerald-800' : 'bg-blue-50 text-blue-800'}`}><span className="ml-1 font-mono">{event.time}</span>{event.title}</button>)}</div></div>;
+            })}</div>
           </div>
-
         </div>
+        {selected && <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-4 sm:items-center" onClick={() => setSelected(null)}><div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}><div className="text-xs font-bold text-slate-400">{selected.type === 'scheduler' ? 'הודעה אישית' : 'קמפיין קבוצות'}</div><h2 className="mt-1 text-xl font-black">{selected.title}</h2><p className="mt-2 text-sm text-slate-500">מתוזמן ליום {selected.day}/10 בשעה {selected.time}</p><div className="mt-6 grid grid-cols-3 gap-2"><button className="rounded-xl border border-slate-200 py-2 text-sm font-bold">ערוך</button><button className="rounded-xl border border-slate-200 py-2 text-sm font-bold">דחה</button><button className="rounded-xl bg-slate-900 py-2 text-sm font-bold text-white">שלח עכשיו</button></div></div></div>}
       </div>
-    </div>
+    </AppShell>
   );
 }
