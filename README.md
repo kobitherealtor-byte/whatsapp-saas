@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WhatsApp Plus MVP
 
-## Getting Started
+מערכת SaaS בעברית לניהול שני מוצרים ממוקדים:
 
-First, run the development server:
+1. **WhatsApp Scheduler** — תזמון הודעות אישיות.
+2. **Group Publisher** — פרסום מתוזמן לקבוצות WhatsApp.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Stack
+
+- **Frontend:** Next.js 16 + React 19 + Tailwind CSS 4
+- **Auth / Data:** Supabase
+- **Automation backend:** Make
+- **WhatsApp transport:** GREEN API
+
+## עקרונות ארכיטקטורה
+
+ה-Frontend לא אמור לשלוח הודעות WhatsApp בעצמו ולא לשמור GREEN API tokens בדפדפן.
+
+הזרימה המתוכננת:
+
+```
+Next.js UI
+   ↓
+Supabase / API layer
+   ↓
+Make
+   ↓
+GREEN API
+   ↓
+WhatsApp
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Make אחראי לתזמון, שליחה, retries, Holiday Guard והתראות.  
+GREEN API אחראי לחיבור WhatsApp ולשליחה בפועל.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## מסכים
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `/` — עמוד כניסה / מוצר
+- `/login` — התחברות
+- `/dashboard` — לוח בקרה
+- `/scheduler` — הודעות מתוזמנות
+- `/scheduler/new` — הודעה חדשה
+- `/publisher` — קמפיינים לקבוצות
+- `/publisher/new` — קמפיין חדש
+- `/calendar` — יומן
+- `/settings` — חיבור WhatsApp / QR
 
-## Learn More
+## הרצה מקומית
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm install
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## לפני Production
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- להשלים Supabase Auth אמיתי בכל המסכים.
+- לוודא RLS מלא לכל טבלה לפי `user_id`.
+- להעביר כל secret ו-GREEN API token לצד שרת בלבד.
+- לחבר Make webhooks / API routes.
+- ליצור GREEN API instance לכל לקוח דרך Partner API.
+- לסנכרן קבוצות WhatsApp לחשבון המשתמש.
+- להחליף נתוני mock בקריאות למסד הנתונים.
+- להוסיף idempotency, audit logs, retries ו-rate limits.
