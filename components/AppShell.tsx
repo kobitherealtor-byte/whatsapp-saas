@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
+import LogoutButton from '@/components/LogoutButton';
 
 const navItems = [
   { href: '/dashboard', label: 'לוח בקרה' },
@@ -48,9 +49,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
             ))}
           </nav>
 
-          <Link href="/settings" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
-            ניהול WhatsApp
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/settings" className="hidden rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 sm:inline-flex">
+              ניהול WhatsApp
+            </Link>
+            <LogoutButton />
+          </div>
         </div>
       </header>
 
