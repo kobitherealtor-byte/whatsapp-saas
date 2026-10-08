@@ -2,6 +2,18 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { nextCampaignRun } from '@/lib/timezone';
+
+async function requireUser() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) throw new Error('צריך להתחבר למערכת.');
+  return { supabase, user };
+}
 
 export async function createGroupCampaign(input: {
   name: string;
@@ -13,19 +25,23 @@ export async function createGroupCampaign(input: {
   endDate: string;
   skipHolidays: boolean;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await requireUser();
 
-  if (authError || !user) throw new Error('צריך להתחבר למערכת.');
   if (!input.name.trim()) throw new Error('שם הקמפיין חסר.');
   if (!input.message.trim()) throw new Error('תוכן ההודעה חסר.');
   if (input.groupIds.length === 0) throw new Error('צריך לבחור לפחות קבוצה אחת.');
   if (input.daysOfWeek.length === 0) throw new Error('צריך לבחור לפחות יום פרסום אחד.');
   if (!/^\d{2}:\d{2}$/.test(input.sendTime)) throw new Error('שעת הפרסום אינה תקינה.');
   if (!input.startDate) throw new Error('תאריך ההתחלה חסר.');
+
+  const uniqueDays = [...new Set(input.daysOfWeek)].sort((a, b) => a - b);
+  if (uniqueDays.some((day) => day < 0 || day > 6)) {
+    throw new Error('ימי הפרסום אינם תקינים.');
+  }
+
+  if (input.endDate && input.endDate < input.startDate) {
+    throw new Error('תאריך הסיום לא יכול להיות לפני תאריך ההתחלה.');
+  }
 
   const { data: groups, error: groupsError } = await supabase
     .from('whatsapp_groups')
@@ -37,18 +53,29 @@ export async function createGroupCampaign(input: {
     throw new Error('אחת הקבוצות שנבחרו אינה זמינה בחשבון שלך.');
   }
 
+  const nextRunAt = nextCampaignRun(uniqueDays, input.sendTime);
+
   const { data: campaign, error: campaignError } = await supabase
     .from('group_campaigns')
     .insert({
       user_id: user.id,
+
+      // New normalized columns
       name: input.name.trim(),
       message_body: input.message.trim(),
-      days_of_week: input.daysOfWeek,
+      days_of_week: uniqueDays,
       send_time: input.sendTime,
+      timezone: 'Asia/Jerusalem',
       start_date: input.startDate,
       end_date: input.endDate || null,
       skip_holidays: input.skipHolidays,
       status: 'active',
+      next_run_at: nextRunAt,
+
+      // Legacy compatibility columns
+      campaign_name: input.name.trim(),
+      allowed_days: uniqueDays,
+      dispatch_time: input.sendTime,
     })
     .select('id')
     .single();
@@ -66,6 +93,46 @@ export async function createGroupCampaign(input: {
     await supabase.from('group_campaigns').delete().eq('id', campaign.id);
     throw new Error(relationError.message);
   }
+
+  revalidatePath('/publisher');
+  revalidatePath('/dashboard');
+  revalidatePath('/calendar');
+}
+
+export async function setCampaignStatus(
+  id: string,
+  status: 'active' | 'paused' | 'cancelled',
+) {
+  const { supabase, user } = await requireUser();
+
+  const payload: Record<string, string | null> = { status };
+
+  if (status === 'active') {
+    const { data: campaign, error } = await supabase
+      .from('group_campaigns')
+      .select('days_of_week, send_time')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (error || !campaign) throw new Error('הקמפיין לא נמצא.');
+    payload.next_run_at = nextCampaignRun(
+      campaign.days_of_week ?? [],
+      campaign.send_time,
+    );
+  }
+
+  if (status === 'cancelled') {
+    payload.next_run_at = null;
+  }
+
+  const { error } = await supabase
+    .from('group_campaigns')
+    .update(payload)
+    .eq('id', id)
+    .eq('user_id', user.id);
+
+  if (error) throw new Error(error.message);
 
   revalidatePath('/publisher');
   revalidatePath('/dashboard');
