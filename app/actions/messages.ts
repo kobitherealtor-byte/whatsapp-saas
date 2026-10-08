@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { wakeAutomationWorker } from '@/lib/automation-wake';
 
 async function requireUser() {
   const supabase = await createClient();
@@ -59,6 +60,7 @@ export async function createScheduledMessage(formData: {
   revalidatePath('/dashboard');
   revalidatePath('/scheduler');
   revalidatePath('/calendar');
+  await wakeAutomationWorker();
 }
 
 export async function cancelScheduledMessage(id: string) {
@@ -76,6 +78,7 @@ export async function cancelScheduledMessage(id: string) {
   revalidatePath('/dashboard');
   revalidatePath('/scheduler');
   revalidatePath('/calendar');
+  await wakeAutomationWorker();
 }
 
 export async function duplicateScheduledMessage(id: string) {
@@ -110,4 +113,5 @@ export async function duplicateScheduledMessage(id: string) {
   revalidatePath('/dashboard');
   revalidatePath('/scheduler');
   revalidatePath('/calendar');
+  await wakeAutomationWorker();
 }
