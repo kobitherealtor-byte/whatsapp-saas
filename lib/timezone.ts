@@ -82,6 +82,8 @@ export function nextCampaignRun(
   daysOfWeek: number[],
   sendTime: string,
   now = new Date(),
+  startDate?: string | null,
+  endDate?: string | null,
 ) {
   const [hourText, minuteText] = sendTime.split(':');
   const hour = Number(hourText);
@@ -99,8 +101,10 @@ export function nextCampaignRun(
   }
 
   const current = getIsraelDateParts(now);
+  const startFloor = startDate ? new Date(`${startDate}T00:00:00Z`) : null;
+  const endCeiling = endDate ? new Date(`${endDate}T23:59:59Z`) : null;
 
-  for (let offsetDays = 0; offsetDays < 14; offsetDays += 1) {
+  for (let offsetDays = 0; offsetDays < 370; offsetDays += 1) {
     const calendarDate = new Date(
       Date.UTC(current.year, current.month - 1, current.day + offsetDays),
     );
@@ -110,6 +114,10 @@ export function nextCampaignRun(
     const day = calendarDate.getUTCDate();
     const weekday = calendarDate.getUTCDay();
 
+    if (startFloor && calendarDate.getTime() < startFloor.getTime()) continue;
+    if (endCeiling && calendarDate.getTime() > endCeiling.getTime()) {
+      return null;
+    }
     if (!daysOfWeek.includes(weekday)) continue;
 
     const candidate = israelLocalDateTimeToUtc(
@@ -125,5 +133,5 @@ export function nextCampaignRun(
     }
   }
 
-  throw new Error('לא ניתן לחשב את מועד ההרצה הבא.');
+  return null;
 }
