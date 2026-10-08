@@ -77,3 +77,8 @@ npm run dev
 5. Add the same environment variables in Vercel and redeploy.
 
 Protected pages now require a real authenticated Supabase session. The app uses Next.js 16 `proxy.ts` for session refresh and route protection.
+
+
+## Holiday Guard
+
+Holiday Guard stores Israel Yom Tov dates in Supabase and refreshes them from the Hebcal Jewish Calendar REST API when future coverage runs low. Hebcal calendar data is used under the Creative Commons Attribution 4.0 license. The publisher checks this table before creating group dispatches for campaigns with `skip_holidays=true`.
