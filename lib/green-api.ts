@@ -117,3 +117,46 @@ export async function getQrCode(input: {
     message: data.message ?? null,
   };
 }
+
+
+export async function getWaSettings(input: {
+  apiUrl: string;
+  idInstance: string;
+  apiTokenInstance: string;
+}) {
+  const response = await fetch(
+    `${input.apiUrl.replace(/\/$/, '')}/waInstance${input.idInstance}/getWaSettings/${input.apiTokenInstance}`,
+    { cache: 'no-store' },
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to read WhatsApp account settings.');
+  }
+
+  return (await response.json()) as {
+    phone?: string;
+    stateInstance?: string;
+    chatId?: string;
+  };
+}
+
+export async function getChats(input: {
+  apiUrl: string;
+  idInstance: string;
+  apiTokenInstance: string;
+}) {
+  const response = await fetch(
+    `${input.apiUrl.replace(/\/$/, '')}/waInstance${input.idInstance}/getChats/${input.apiTokenInstance}`,
+    { cache: 'no-store' },
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to load WhatsApp chats.');
+  }
+
+  return (await response.json()) as Array<{
+    id?: string;
+    name?: string;
+    archive?: boolean;
+  }>;
+}
