@@ -22,6 +22,8 @@ export default function SettingsPage() {
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [syncingGroups, setSyncingGroups] = useState(false);
+  const [syncMessage, setSyncMessage] = useState('');
   const [error, setError] = useState('');
 
   const loadStatus = useCallback(async () => {
@@ -107,6 +109,36 @@ export default function SettingsPage() {
 
     return () => window.clearInterval(qrTimer);
   }, [loadQr, status]);
+
+  const syncGroups = async () => {
+    setSyncingGroups(true);
+    setSyncMessage('');
+    setError('');
+
+    try {
+      const response = await fetch('/api/whatsapp/groups/sync', {
+        method: 'POST',
+      });
+      const data = (await response.json()) as {
+        synced?: number;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.error || 'סנכרון הקבוצות נכשל.');
+      }
+
+      setSyncMessage(`סונכרנו ${data.synced ?? 0} קבוצות WhatsApp.`);
+    } catch (syncError) {
+      setError(
+        syncError instanceof Error
+          ? syncError.message
+          : 'סנכרון הקבוצות נכשל.',
+      );
+    } finally {
+      setSyncingGroups(false);
+    }
+  };
 
   const connect = async () => {
     setBusy(true);
@@ -243,6 +275,21 @@ export default function SettingsPage() {
                     : 'אפשר לתזמן הודעות ולהפעיל קמפיינים לקבוצות.'}
                 </div>
               </div>
+
+              <button
+                type="button"
+                onClick={syncGroups}
+                disabled={syncingGroups}
+                className="mt-5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold hover:bg-slate-50 disabled:opacity-50"
+              >
+                {syncingGroups ? 'מסנכרן קבוצות...' : 'סנכרן קבוצות WhatsApp'}
+              </button>
+
+              {syncMessage && (
+                <div className="mt-3 text-sm font-semibold text-emerald-700">
+                  {syncMessage}
+                </div>
+              )}
             </div>
           )}
 
