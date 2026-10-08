@@ -62,3 +62,18 @@ npm run dev
 - לסנכרן קבוצות WhatsApp לחשבון המשתמש.
 - להחליף נתוני mock בקריאות למסד הנתונים.
 - להוסיף idempotency, audit logs, retries ו-rate limits.
+
+
+## Supabase Auth setup
+
+1. Create a Supabase project.
+2. Run `supabase/migrations/001_initial_schema.sql` in the Supabase SQL Editor.
+3. Copy `.env.example` to `.env.local` and fill:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+4. In Supabase Auth URL Configuration, add your local and Vercel URLs as allowed redirect URLs, including:
+   - `http://localhost:3000/auth/callback`
+   - `https://YOUR-VERCEL-DOMAIN/auth/callback`
+5. Add the same environment variables in Vercel and redeploy.
+
+Protected pages now require a real authenticated Supabase session. The app uses Next.js 16 `proxy.ts` for session refresh and route protection.
