@@ -1,77 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
-import Link from 'next/link';
+import { useState } from 'react';
+import AppShell from '@/components/AppShell';
 
 export default function SettingsPage() {
   const [status, setStatus] = useState<'disconnected' | 'creating' | 'waiting_for_qr' | 'connected'>('disconnected');
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 text-right" dir="rtl">
-      <div className="max-w-xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
-        <div className="flex justify-between items-center mb-6">
-          <Link href="/dashboard" className="text-sm text-emerald-600 hover:underline">
-            → חזרה ללוח הבקרה
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900">חיבור חשבון WhatsApp</h1>
-        </div>
-        <p className="text-gray-500 mb-8 text-sm">חבר את המכשיר שלך כדי להתחיל לתזמן הודעות ופרסומים בקבוצות ללא מאמץ טכני.</p>
+    <AppShell>
+      <div className="mx-auto max-w-3xl pb-20 lg:pb-0">
+        <div className="mb-6"><h1 className="text-3xl font-black">חיבור WhatsApp</h1><p className="mt-1 text-slate-500">חיבור פשוט דרך QR — בלי מפתחות, טוקנים או מסכים טכניים.</p></div>
 
-        {status === 'disconnected' && (
-          <div className="py-6">
-            <div className="bg-amber-50 text-amber-800 p-4 rounded-lg mb-6 text-sm inline-block">
-              ⚠️ המכשיר אינו מחובר למערכת
-            </div>
-            <button 
-              onClick={() => setStatus('creating')}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 rounded-lg transition"
-            >
-              התחל חיבור חדש (יצירת קוד QR)
-            </button>
-          </div>
-        )}
-
-        {status === 'creating' && (
-          <div className="py-12 flex flex-col items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mb-4"></div>
-            <p className="text-gray-600 font-medium">מכין את סביבת החיבור המאובטחת שלך...</p>
-            <button onClick={() => setStatus('waiting_for_qr')} className="mt-4 text-xs text-gray-400 underline">
-              (הדמיית הצגת QR קוד)
-            </button>
-          </div>
-        )}
-
-        {status === 'waiting_for_qr' && (
-          <div className="py-4 flex flex-col items-center">
-            <p className="text-emerald-700 font-medium mb-4">הסביבה מוכנה! סרוק את קוד ה-QR מאפליקציית ה-WhatsApp בטלפון:</p>
-            <div className="bg-gray-100 p-8 rounded-lg border border-gray-200 mb-4 w-64 h-64 flex items-center justify-center font-bold text-gray-400">
-              [כאן יופיע ה-QR הדינמי]
-            </div>
-            <p className="text-xs text-gray-400 animate-pulse mb-4">ממתין לסריקת המכשיר מהנייד...</p>
-            <button 
-              onClick={() => setStatus('connected')}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-xs"
-            >
-              הדמה סריקה מוצלחת ✅
-            </button>
-          </div>
-        )}
-
-        {status === 'connected' && (
-          <div className="py-6">
-            <div className="bg-emerald-50 text-emerald-800 p-4 rounded-lg mb-6 text-sm inline-block font-medium">
-              ✅ הוואטסאפ שלך מחובר בהצלחה למערכת!
-            </div>
-            <p className="text-gray-700 mb-6">מספר מחובר סימולטיבי: <span className="font-bold">050-1234567</span></p>
-            <button 
-              onClick={() => setStatus('disconnected')}
-              className="w-full bg-red-50 hover:bg-red-100 text-red-600 font-medium py-2.5 rounded-lg transition text-sm"
-            >
-              נתק מכשיר
-            </button>
-          </div>
-        )}
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          {status === 'disconnected' && <div className="text-center"><div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-2xl">◌</div><h2 className="text-xl font-extrabold">WhatsApp עדיין לא מחובר</h2><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">לחץ על הכפתור. המערכת תכין חיבור ייעודי ותציג QR לסריקה.</p><button onClick={() => setStatus('creating')} className="mt-6 w-full rounded-xl bg-emerald-600 px-5 py-3 font-bold text-white hover:bg-emerald-700 sm:w-auto">חבר WhatsApp</button></div>}
+          {status === 'creating' && <div className="py-10 text-center"><div className="mx-auto mb-5 h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-emerald-600" /><h2 className="font-extrabold">מכין חיבור מאובטח...</h2><p className="mt-2 text-sm text-slate-500">בגרסה המחוברת, השרת ייצור חיבור ויחזיר QR.</p><button onClick={() => setStatus('waiting_for_qr')} className="mt-5 text-xs font-bold text-slate-400 underline">המשך להדמיית QR</button></div>}
+          {status === 'waiting_for_qr' && <div className="text-center"><h2 className="text-xl font-extrabold">סרוק את הקוד מהטלפון</h2><p className="mt-2 text-sm text-slate-500">WhatsApp → מכשירים מקושרים → קישור מכשיר</p><div className="mx-auto my-6 flex aspect-square w-64 items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-sm font-bold text-slate-400">QR דינמי יופיע כאן</div><div className="text-xs font-semibold text-amber-700">ממתין לסריקה...</div><button onClick={() => setStatus('connected')} className="mt-5 rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold">הדמיית חיבור מוצלח</button></div>}
+          {status === 'connected' && <div className="text-center"><div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-2xl">✓</div><h2 className="text-xl font-extrabold text-emerald-900">WhatsApp מחובר</h2><p className="mt-2 text-sm text-slate-500">החיבור פעיל ומוכן לשימוש.</p><div className="mx-auto mt-6 max-w-md rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-right text-sm text-emerald-900"><div className="font-bold">הכל מוכן</div><div className="mt-1 text-emerald-700">אפשר לתזמן הודעות ולהפעיל קמפיינים לקבוצות.</div></div><button onClick={() => setStatus('disconnected')} className="mt-6 text-sm font-bold text-red-600 hover:underline">נתק WhatsApp</button></div>}
+        </section>
       </div>
-    </div>
+    </AppShell>
   );
 }
