@@ -1,8 +1,22 @@
 import Link from 'next/link';
 import AppShell from '@/components/AppShell';
-import { groupCampaigns } from '@/lib/mock-data';
+import { getCampaigns, getWhatsAppGroups } from '@/lib/data';
 
-export default function PublisherPage() {
+const dayLabels = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
+
+function formatNextRun(value: string | null) {
+  if (!value) return 'טרם חושב';
+  return new Intl.DateTimeFormat('he-IL', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+    timeZone: 'Asia/Jerusalem',
+  }).format(new Date(value));
+}
+
+export default async function PublisherPage() {
+  const [campaigns, groups] = await Promise.all([getCampaigns(), getWhatsAppGroups()]);
+  const activeCount = campaigns.filter((campaign) => campaign.status === 'active').length;
+
   return (
     <AppShell>
       <div className="pb-20 lg:pb-0">
@@ -15,23 +29,53 @@ export default function PublisherPage() {
         </header>
 
         <section className="mb-5 grid gap-4 md:grid-cols-3">
-          {[["2", "קמפיינים פעילים"], ["11", "קבוצות זמינות"], ["18", "פרסומים השבוע"]].map(([value, label]) => (
-            <div key={label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="text-3xl font-black">{value}</div><div className="mt-1 text-sm text-slate-500">{label}</div></div>
+          {[[String(activeCount), 'קמפיינים פעילים'], [String(groups.length), 'קבוצות זמינות'], [String(campaigns.length), 'סה״כ קמפיינים']].map(([value, label]) => (
+            <div key={label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="text-3xl font-black">{value}</div>
+              <div className="mt-1 text-sm text-slate-500">{label}</div>
+            </div>
           ))}
         </section>
 
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="hidden grid-cols-[1.5fr_.6fr_1fr_1fr_.8fr] gap-4 border-b border-slate-100 bg-slate-50 px-5 py-3 text-xs font-bold text-slate-500 md:grid"><div>קמפיין</div><div>קבוצות</div><div>תזמון</div><div>הרצה הבאה</div><div>סטטוס</div></div>
+          <div className="hidden grid-cols-[1.5fr_.6fr_1fr_1fr_.8fr] gap-4 border-b border-slate-100 bg-slate-50 px-5 py-3 text-xs font-bold text-slate-500 md:grid">
+            <div>קמפיין</div><div>קבוצות</div><div>תזמון</div><div>הרצה הבאה</div><div>סטטוס</div>
+          </div>
           <div className="divide-y divide-slate-100">
-            {groupCampaigns.map((campaign) => (
-              <div key={campaign.id} className="grid gap-3 p-5 md:grid-cols-[1.5fr_.6fr_1fr_1fr_.8fr] md:items-center">
-                <div><div className="font-bold">{campaign.name}</div><div className="mt-1 text-xs text-slate-400">לחץ לעריכה, השהיה או שכפול</div></div>
-                <div className="text-sm font-bold">{campaign.groups}</div>
-                <div className="text-sm text-slate-600">{campaign.schedule}</div>
-                <div className="text-sm text-slate-600">{campaign.nextRun}</div>
-                <div><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${campaign.status === 'active' ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>{campaign.status === 'active' ? 'פעיל' : 'מושהה'}</span></div>
+            {campaigns.map((campaign) => {
+              const groupCount = campaign.campaign_groups?.length ?? 0;
+              const schedule = campaign.days_of_week.length
+                ? `${campaign.days_of_week.map((day) => dayLabels[day] ?? day).join(', ')} · ${campaign.send_time.slice(0, 5)}`
+                : `ללא ימים · ${campaign.send_time.slice(0, 5)}`;
+
+              return (
+                <div key={campaign.id} className="grid gap-3 p-5 md:grid-cols-[1.5fr_.6fr_1fr_1fr_.8fr] md:items-center">
+                  <div>
+                    <div className="font-bold">{campaign.name}</div>
+                    <div className="mt-1 truncate text-xs text-slate-400">{campaign.message_body}</div>
+                  </div>
+                  <div className="text-sm font-bold">{groupCount}</div>
+                  <div className="text-sm text-slate-600">{schedule}</div>
+                  <div className="text-sm text-slate-600">{formatNextRun(campaign.next_run_at)}</div>
+                  <div>
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                      campaign.status === 'active'
+                        ? 'bg-emerald-50 text-emerald-800'
+                        : campaign.status === 'paused'
+                          ? 'bg-amber-50 text-amber-800'
+                          : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {campaign.status === 'active' ? 'פעיל' : campaign.status === 'paused' ? 'מושהה' : campaign.status}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+            {campaigns.length === 0 && (
+              <div className="p-10 text-center text-sm text-slate-400">
+                עדיין לא נוצרו קמפיינים.
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>
