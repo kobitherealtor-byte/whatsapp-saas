@@ -149,3 +149,67 @@ export async function getDashboardData() {
     failed: failedCountResult.count ?? 0,
   };
 }
+
+
+export type CalendarEvent = {
+  id: string;
+  title: string;
+  startsAt: string;
+  type: 'scheduler' | 'publisher';
+  status: string;
+  detail: string;
+};
+
+export async function getCalendarEvents() {
+  const { supabase } = await getAuthedClient();
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+  const end = new Date(now.getFullYear(), now.getMonth() + 3, 1).toISOString();
+
+  const [messagesResult, campaignsResult] = await Promise.all([
+    supabase
+      .from('scheduled_messages')
+      .select('id, recipient_name, recipient_number, message_body, scheduled_time, status')
+      .gte('scheduled_time', start)
+      .lt('scheduled_time', end)
+      .neq('status', 'cancelled')
+      .order('scheduled_time', { ascending: true }),
+    supabase
+      .from('group_campaigns')
+      .select('id, name, message_body, next_run_at, status')
+      .not('next_run_at', 'is', null)
+      .gte('next_run_at', start)
+      .lt('next_run_at', end)
+      .in('status', ['active', 'paused'])
+      .order('next_run_at', { ascending: true }),
+  ]);
+
+  if (messagesResult.error) throw new Error(messagesResult.error.message);
+  if (campaignsResult.error) throw new Error(campaignsResult.error.message);
+
+  const messageEvents: CalendarEvent[] = (messagesResult.data ?? []).map((item) => ({
+    id: `message:${item.id}`,
+    title: item.recipient_name
+      ? `הודעה ל${item.recipient_name}`
+      : `הודעה ל${item.recipient_number}`,
+    startsAt: item.scheduled_time,
+    type: 'scheduler',
+    status: item.status,
+    detail: item.message_body,
+  }));
+
+  const campaignEvents: CalendarEvent[] = (campaignsResult.data ?? [])
+    .filter((item) => item.next_run_at)
+    .map((item) => ({
+      id: `campaign:${item.id}`,
+      title: item.name,
+      startsAt: item.next_run_at!,
+      type: 'publisher',
+      status: item.status,
+      detail: item.message_body,
+    }));
+
+  return [...messageEvents, ...campaignEvents].sort(
+    (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+  );
+}
