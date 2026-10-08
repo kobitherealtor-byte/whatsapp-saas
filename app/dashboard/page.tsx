@@ -59,7 +59,9 @@ export default function Dashboard() {
           </div>
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <p className="text-sm font-medium text-gray-400">הודעות שנכשלו</p>
-            <p className="text-3xl font-bold text-gray-800 mt-2">{stats.failedMessages}</p>
+            <p className={`text-3xl font-bold mt-2 ${stats.failedMessages === 0 ? 'text-gray-800' : 'text-red-500'}`}>
+              {stats.failedMessages}
+            </p>
           </div>
         </div>
 
