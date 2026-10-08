@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
+import AppShell from '@/components/AppShell';
 import { createScheduledMessage } from '@/app/actions/messages';
 
 export default function NewScheduledMessage() {
@@ -12,7 +13,7 @@ export default function NewScheduledMessage() {
     body: '',
     date: '',
     time: '',
-    recurrence: 'none'
+    recurrence: 'none',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,61 +21,111 @@ export default function NewScheduledMessage() {
     setLoading(true);
     try {
       await createScheduledMessage(formData);
-      alert('ההודעה נשמרה ותוזמנה בבסיס הנתונים בהצלחה!');
       window.location.href = '/scheduler';
-    } catch (err: any) {
-      alert(`שגיאה בשמירה: ${err.message}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'אירעה שגיאה בשמירה';
+      alert(message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 text-right" dir="rtl">
-      <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-        <div className="flex justify-between items-center mb-6">
-          <Link href="/scheduler" className="text-sm text-emerald-600 hover:underline">→ חזרה</Link>
-          <h1 className="text-2xl font-bold text-gray-900">תזמון הודעה אישית חדשה</h1>
+    <AppShell>
+      <div className="mx-auto max-w-3xl pb-20 lg:pb-0">
+        <div className="mb-6">
+          <Link href="/scheduler" className="text-sm font-bold text-emerald-700 hover:underline">← חזרה להודעות</Link>
+          <h1 className="mt-3 text-3xl font-black">תזמון הודעה חדשה</h1>
+          <p className="mt-1 text-slate-500">בחר יעד, כתוב הודעה וקבע מתי היא תישלח.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">מספר טלפון ליעד *</label>
-            <input type="tel" placeholder="0501234567" required className="w-full p-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" value={formData.recipient} onChange={e => setFormData({...formData, recipient: e.target.value})} disabled={loading} />
+        <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="text-sm font-bold text-slate-700">
+              מספר טלפון *
+              <input
+                type="tel"
+                required
+                value={formData.recipient}
+                onChange={(e) => setFormData({ ...formData, recipient: e.target.value })}
+                placeholder="0501234567"
+                className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-emerald-500"
+                disabled={loading}
+              />
+            </label>
+            <label className="text-sm font-bold text-slate-700">
+              שם איש קשר
+              <input
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="אופציונלי"
+                className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-emerald-500"
+                disabled={loading}
+              />
+            </label>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">שם איש קשר</label>
-            <input type="text" placeholder="שם הלקוח" className="w-full p-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} disabled={loading} />
+
+          <label className="block text-sm font-bold text-slate-700">
+            תוכן ההודעה *
+            <textarea
+              rows={5}
+              required
+              value={formData.body}
+              onChange={(e) => setFormData({ ...formData, body: e.target.value })}
+              placeholder="רשום כאן את ההודעה..."
+              className="mt-2 w-full resize-y rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-emerald-500"
+              disabled={loading}
+            />
+          </label>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="text-sm font-bold text-slate-700">
+              תאריך *
+              <input
+                type="date"
+                required
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-emerald-500"
+                disabled={loading}
+              />
+            </label>
+            <label className="text-sm font-bold text-slate-700">
+              שעה *
+              <input
+                type="time"
+                required
+                value={formData.time}
+                onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-emerald-500"
+                disabled={loading}
+              />
+            </label>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">תוכן ההודעה *</label>
-            <textarea rows={4} required placeholder="מה לכתוב בהודעה?" className="w-full p-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" value={formData.body} onChange={e => setFormData({...formData, body: e.target.value})} disabled={loading} />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">תאריך *</label>
-              <input type="date" required className="w-full p-2.5 border border-gray-200 rounded-lg focus:outline-none text-right" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} disabled={loading} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">שעה *</label>
-              <input type="time" required className="w-full p-2.5 border border-gray-200 rounded-lg focus:outline-none text-right" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} disabled={loading} />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">חזרה</label>
-            <select className="w-full p-2.5 border border-gray-200 rounded-lg bg-white focus:outline-none" value={formData.recurrence} onChange={e => setFormData({...formData, recurrence: e.target.value})} disabled={loading}>
+
+          <label className="block text-sm font-bold text-slate-700">
+            חזרה
+            <select
+              value={formData.recurrence}
+              onChange={(e) => setFormData({ ...formData, recurrence: e.target.value })}
+              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-normal outline-none focus:border-emerald-500"
+              disabled={loading}
+            >
               <option value="none">ללא חזרה</option>
               <option value="daily">כל יום</option>
               <option value="weekly">כל שבוע</option>
+              <option value="monthly">כל חודש</option>
             </select>
-          </div>
-          <div className="flex gap-4 pt-4 border-t border-gray-100">
-            <button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg transition" disabled={loading}>
-              {loading ? 'שומר ומסנכרן נתונים...' : 'שמור ותזמן הודעה'}
+          </label>
+
+          <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row">
+            <button type="submit" disabled={loading} className="flex-1 rounded-xl bg-emerald-600 px-5 py-3 font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">
+              {loading ? 'שומר...' : 'שמור ותזמן'}
             </button>
+            <Link href="/scheduler" className="rounded-xl border border-slate-200 px-5 py-3 text-center font-bold text-slate-600 hover:bg-slate-50">ביטול</Link>
           </div>
         </form>
       </div>
-    </div>
+    </AppShell>
   );
 }
