@@ -2,11 +2,14 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import AppShell from '@/components/AppShell';
 import { createScheduledMessage } from '@/app/actions/messages';
 
 export default function NewScheduledMessage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     recipient: '',
     name: '',
@@ -19,12 +22,31 @@ export default function NewScheduledMessage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
+
     try {
-      await createScheduledMessage(formData);
-      window.location.href = '/scheduler';
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'אירעה שגיאה בשמירה';
-      alert(message);
+      const localDate = new Date(`${formData.date}T${formData.time}`);
+
+      if (Number.isNaN(localDate.getTime())) {
+        throw new Error('תאריך או שעה אינם תקינים.');
+      }
+
+      await createScheduledMessage({
+        recipient: formData.recipient,
+        name: formData.name,
+        body: formData.body,
+        scheduledAt: localDate.toISOString(),
+        recurrence: formData.recurrence,
+      });
+
+      router.push('/scheduler');
+      router.refresh();
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : 'אירעה שגיאה בשמירה',
+      );
     } finally {
       setLoading(false);
     }
@@ -40,6 +62,12 @@ export default function NewScheduledMessage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">
+              {error}
+            </div>
+          )}
+
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="text-sm font-bold text-slate-700">
               מספר טלפון *
