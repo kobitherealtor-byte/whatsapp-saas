@@ -1,8 +1,7 @@
 'use server';
 
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
+import { createClient } from '@/lib/supabase/server';
 
 export async function createScheduledMessage(formData: {
   recipient: string;
@@ -12,42 +11,39 @@ export async function createScheduledMessage(formData: {
   time: string;
   recurrence: string;
 }) {
-  const cookieStore = await cookies();
-  
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll(); },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {}
-        },
-      },
-    }
-  );
+  const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('משתמש לא מחובר למערכת');
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
 
-  const scheduledTime = new Date(`${formData.date}T${formData.time}`).toISOString();
+  if (authError || !user) {
+    throw new Error('צריך להתחבר למערכת לפני שמירת הודעה.');
+  }
+
+  const recipient = formData.recipient.replace(/[^0-9+]/g, '');
+  if (recipient.length < 9) throw new Error('מספר הטלפון אינו תקין.');
+  if (!formData.body.trim()) throw new Error('תוכן ההודעה חסר.');
+
+  const scheduledTime = new Date(`${formData.date}T${formData.time}`);
+  if (Number.isNaN(scheduledTime.getTime())) throw new Error('תאריך או שעה אינם תקינים.');
+  if (scheduledTime.getTime() <= Date.now()) throw new Error('זמן השליחה חייב להיות בעתיד.');
 
   const { error } = await supabase.from('scheduled_messages').insert({
     user_id: user.id,
-    recipient_number: formData.recipient,
-    recipient_name: formData.name,
-    message_body: formData.body,
-    scheduled_time: scheduledTime,
+    recipient_number: recipient,
+    recipient_name: formData.name.trim() || null,
+    message_body: formData.body.trim(),
+    scheduled_time: scheduledTime.toISOString(),
+    timezone: 'Asia/Jerusalem',
     recurrence: formData.recurrence,
-    status: 'pending'
+    status: 'pending',
   });
 
   if (error) throw new Error(error.message);
 
   revalidatePath('/dashboard');
   revalidatePath('/scheduler');
+  revalidatePath('/calendar');
 }
