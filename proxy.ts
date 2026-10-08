@@ -50,11 +50,8 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  const {
-    data: { claims },
-  } = await supabase.auth.getClaims();
-
-  const isAuthenticated = Boolean(claims?.sub);
+  const claimsResult = await supabase.auth.getClaims();
+  const isAuthenticated = Boolean(claimsResult.data?.claims?.sub);
   const isLoginPage = request.nextUrl.pathname === '/login';
 
   if (!isAuthenticated && isProtected) {
