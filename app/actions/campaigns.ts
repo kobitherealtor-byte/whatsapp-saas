@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { nextCampaignRun } from '@/lib/timezone';
+import { wakeAutomationWorker } from '@/lib/automation-wake';
 
 async function requireUser() {
   const supabase = await createClient();
@@ -107,6 +108,7 @@ export async function createGroupCampaign(input: {
   revalidatePath('/publisher');
   revalidatePath('/dashboard');
   revalidatePath('/calendar');
+  await wakeAutomationWorker();
 }
 
 export async function setCampaignStatus(
@@ -149,4 +151,5 @@ export async function setCampaignStatus(
   revalidatePath('/publisher');
   revalidatePath('/dashboard');
   revalidatePath('/calendar');
+  await wakeAutomationWorker();
 }
