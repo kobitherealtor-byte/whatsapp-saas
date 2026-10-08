@@ -1,77 +1,72 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import AppShell from '@/components/AppShell';
+import { scheduledMessages, type MessageStatus } from '@/lib/mock-data';
+
+const statusMap: Record<MessageStatus, { label: string; className: string }> = {
+  pending: { label: 'ממתין', className: 'bg-amber-50 text-amber-800 ring-amber-200' },
+  sent: { label: 'נשלח', className: 'bg-emerald-50 text-emerald-800 ring-emerald-200' },
+  failed: { label: 'נכשל', className: 'bg-red-50 text-red-800 ring-red-200' },
+  cancelled: { label: 'בוטל', className: 'bg-slate-100 text-slate-600 ring-slate-200' },
+};
 
 export default function SchedulerList() {
-  const [filter, setFilter] = useState<'all' | 'pending' | 'sent' | 'failed'>('all');
+  const [filter, setFilter] = useState<'all' | MessageStatus>('all');
+  const [query, setQuery] = useState('');
 
-  // נתוני דוגמה להצגה ב-MVP
-  const messages = [
-    { id: '1', name: 'יוסי כהן', phone: '0501234567', body: 'תזכורת: הפגישה שלנו מחר', time: '12/10/2026 10:00', status: 'pending' },
-    { id: '2', name: 'מיכל לוי', phone: '0529876543', body: 'חג שמח מיכל! מצורף הקופון שלך', time: '05/10/2026 16:00', status: 'sent' },
-    { id: '3', name: 'אבי ארז', phone: '0541112223', body: 'החשבונית החודשית מוכנה', time: '01/10/2026 09:00', status: 'failed' },
-  ];
-
-  const filteredMessages = messages.filter(msg => filter === 'all' || msg.status === filter);
+  const filteredMessages = useMemo(() => scheduledMessages.filter((msg) => {
+    const matchesFilter = filter === 'all' || msg.status === filter;
+    const q = query.trim().toLowerCase();
+    const matchesQuery = !q || `${msg.name} ${msg.phone} ${msg.body}`.toLowerCase().includes(q);
+    return matchesFilter && matchesQuery;
+  }), [filter, query]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 text-right" dir="rtl">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
+    <AppShell>
+      <div className="pb-20 lg:pb-0">
+        <header className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">WhatsApp Scheduler</h1>
-            <p className="text-gray-500 text-sm">ניהול ותזמון הודעות אישיות ישירות ללקוחות שלך</p>
+            <h1 className="text-3xl font-black">הודעות מתוזמנות</h1>
+            <p className="mt-1 text-slate-500">הודעות אישיות שנשלחות אוטומטית בזמן שבחרת.</p>
           </div>
-          <Link href="/scheduler/new" className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 px-5 rounded-lg transition shadow-sm">
-            + תזמן הודעה חדשה
-          </Link>
+          <Link href="/scheduler/new" className="rounded-xl bg-emerald-600 px-5 py-3 text-center text-sm font-bold text-white hover:bg-emerald-700">+ תזמן הודעה</Link>
+        </header>
+
+        <div className="mb-5 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-[1fr_auto]">
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="חפש לפי שם, מספר או תוכן..." className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-emerald-500" />
+          <div className="flex flex-wrap gap-2">
+            {([
+              ['all', 'הכל'],
+              ['pending', 'ממתין'],
+              ['sent', 'נשלח'],
+              ['failed', 'נכשל'],
+              ['cancelled', 'בוטל'],
+            ] as const).map(([value, label]) => (
+              <button key={value} onClick={() => setFilter(value)} className={`rounded-xl px-3 py-2 text-xs font-bold ${filter === value ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{label}</button>
+            ))}
+          </div>
         </div>
 
-        {/* פילטרים מהירים */}
-        <div className="flex gap-2 mb-6 border-b border-gray-200 pb-3">
-          <button onClick={() => setFilter('all')} className={`px-4 py-2 text-sm font-medium rounded-md ${filter === 'all' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-100'}`}>הכל</button>
-          <button onClick={() => setFilter('pending')} className={`px-4 py-2 text-sm font-medium rounded-md ${filter === 'pending' ? 'bg-amber-50 text-amber-700' : 'text-gray-600 hover:bg-gray-100'}`}>בתור לשליחה</button>
-          <button onClick={() => setFilter('sent')} className={`px-4 py-2 text-sm font-medium rounded-md ${filter === 'sent' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-100'}`}>נשלחו בהצלחה</button>
-          <button onClick={() => setFilter('failed')} className={`px-4 py-2 text-sm font-medium rounded-md ${filter === 'failed' ? 'bg-red-50 text-red-700' : 'text-gray-600 hover:bg-gray-100'}`}>נכשלו</button>
-        </div>
-
-        {/* טבלת הודעות */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full text-right border-collapse">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-sm">
-                <th className="p-4 font-medium">איש קשר / מספר</th>
-                <th className="p-4 font-medium">תוכן ההודעה</th>
-                <th className="p-4 font-medium">זמן מתוזמן</th>
-                <th className="p-4 font-medium">סטטוס</th>
-                <th className="p-4 font-medium text-left">פעולות</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 text-gray-700 text-sm">
-              {filteredMessages.map(msg => (
-                <tr key={msg.id} className="hover:bg-gray-50/50">
-                  <td className="p-4">
-                    <div className="font-bold text-gray-900">{msg.name || 'ללא שם'}</div>
-                    <div className="text-gray-400 text-xs">{msg.phone}</div>
-                  </td>
-                  <td className="p-4 max-w-md truncate">{msg.body}</td>
-                  <td className="p-4 text-gray-600">{msg.time}</td>
-                  <td className="p-4">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${msg.status === 'sent' ? 'bg-emerald-100 text-emerald-800' : msg.status === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}`}>
-                      {msg.status === 'sent' ? 'נשלח' : msg.status === 'pending' ? 'ממתין' : 'נכשל'}
-                    </span>
-                  </td>
-                  <td className="p-4 text-left space-x-2 space-x-reverse">
-                    <button className="text-gray-500 hover:text-gray-900 ml-3">שכפול</button>
-                    <button className="text-red-600 hover:text-red-800">ביטול</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="hidden grid-cols-[1.2fr_2fr_1fr_.7fr_.8fr] gap-4 border-b border-slate-100 bg-slate-50 px-5 py-3 text-xs font-bold text-slate-500 md:grid">
+            <div>יעד</div><div>הודעה</div><div>זמן</div><div>סטטוס</div><div>פעולות</div>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {filteredMessages.map((msg) => (
+              <div key={msg.id} className="grid gap-3 p-5 md:grid-cols-[1.2fr_2fr_1fr_.7fr_.8fr] md:items-center">
+                <div><div className="font-bold">{msg.name || 'ללא שם'}</div><div className="text-xs text-slate-400">{msg.phone}</div></div>
+                <div className="text-sm text-slate-600">{msg.body}</div>
+                <div className="text-sm font-medium text-slate-600">{msg.time}</div>
+                <div><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset ${statusMap[msg.status].className}`}>{statusMap[msg.status].label}</span></div>
+                <div className="flex gap-3 text-xs font-bold"><button className="text-slate-500 hover:text-slate-900">שכפול</button>{msg.status === 'pending' && <button className="text-red-600 hover:text-red-800">ביטול</button>}</div>
+              </div>
+            ))}
+            {filteredMessages.length === 0 && <div className="p-10 text-center text-sm text-slate-400">לא נמצאו הודעות מתאימות.</div>}
+          </div>
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 }
