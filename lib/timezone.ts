@@ -135,3 +135,20 @@ export function nextCampaignRun(
 
   return null;
 }
+
+
+export function dateKeyInTimeZone(
+  value: string | Date,
+  timeZone = APP_TIMEZONE,
+) {
+  const date = value instanceof Date ? value : new Date(value);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${map.year}-${map.month}-${map.day}`;
+}
