@@ -1,21 +1,268 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import AppShell from '@/components/AppShell';
 
+type ConnectionStatus =
+  | 'disconnected'
+  | 'creating'
+  | 'waiting_for_qr'
+  | 'connected'
+  | 'error';
+
+type StatusPayload = {
+  status?: ConnectionStatus;
+  providerState?: string | null;
+  phoneNumber?: string | null;
+  error?: string;
+};
+
 export default function SettingsPage() {
-  const [status, setStatus] = useState<'disconnected' | 'creating' | 'waiting_for_qr' | 'connected'>('disconnected');
+  const [status, setStatus] = useState<ConnectionStatus>('creating');
+  const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const loadStatus = useCallback(async () => {
+    try {
+      const response = await fetch('/api/whatsapp/status', {
+        cache: 'no-store',
+      });
+      const data = (await response.json()) as StatusPayload;
+
+      if (!response.ok) {
+        throw new Error(data.error || 'לא ניתן לבדוק את מצב החיבור.');
+      }
+
+      const nextStatus = data.status ?? 'disconnected';
+      setStatus(nextStatus);
+      setPhoneNumber(data.phoneNumber ?? null);
+      setError('');
+
+      if (nextStatus !== 'waiting_for_qr') {
+        setQrDataUrl(null);
+      }
+    } catch (statusError) {
+      setStatus('error');
+      setError(
+        statusError instanceof Error
+          ? statusError.message
+          : 'לא ניתן לבדוק את מצב החיבור.',
+      );
+    }
+  }, []);
+
+  const loadQr = useCallback(async () => {
+    try {
+      const response = await fetch('/api/whatsapp/qr', {
+        cache: 'no-store',
+      });
+      const data = (await response.json()) as {
+        type?: string;
+        dataUrl?: string;
+        message?: string;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.error || 'לא ניתן לקבל QR כרגע.');
+      }
+
+      if (data.type === 'qrCode' && data.dataUrl) {
+        setQrDataUrl(data.dataUrl);
+        setError('');
+      } else if (data.type === 'alreadyLogged') {
+        await loadStatus();
+      }
+    } catch (qrError) {
+      setError(
+        qrError instanceof Error ? qrError.message : 'לא ניתן לקבל QR כרגע.',
+      );
+    }
+  }, [loadStatus]);
+
+  useEffect(() => {
+    void loadStatus();
+  }, [loadStatus]);
+
+  useEffect(() => {
+    if (status !== 'creating' && status !== 'waiting_for_qr') return;
+
+    const statusTimer = window.setInterval(() => {
+      void loadStatus();
+    }, 5000);
+
+    return () => window.clearInterval(statusTimer);
+  }, [loadStatus, status]);
+
+  useEffect(() => {
+    if (status !== 'waiting_for_qr') return;
+
+    void loadQr();
+
+    const qrTimer = window.setInterval(() => {
+      void loadQr();
+    }, 10000);
+
+    return () => window.clearInterval(qrTimer);
+  }, [loadQr, status]);
+
+  const connect = async () => {
+    setBusy(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/whatsapp/connect', {
+        method: 'POST',
+      });
+      const data = (await response.json()) as StatusPayload & {
+        created?: boolean;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.error || 'יצירת החיבור נכשלה.');
+      }
+
+      setStatus(data.status ?? 'creating');
+      await loadStatus();
+    } catch (connectError) {
+      setStatus('error');
+      setError(
+        connectError instanceof Error
+          ? connectError.message
+          : 'יצירת החיבור נכשלה.',
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <AppShell>
       <div className="mx-auto max-w-3xl pb-20 lg:pb-0">
-        <div className="mb-6"><h1 className="text-3xl font-black">חיבור WhatsApp</h1><p className="mt-1 text-slate-500">חיבור פשוט דרך QR — בלי מפתחות, טוקנים או מסכים טכניים.</p></div>
+        <div className="mb-6">
+          <h1 className="text-3xl font-black">חיבור WhatsApp</h1>
+          <p className="mt-1 text-slate-500">
+            חיבור פשוט דרך QR — בלי מפתחות, טוקנים או מסכים טכניים.
+          </p>
+        </div>
+
+        {error && (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+            {error}
+          </div>
+        )}
 
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-          {status === 'disconnected' && <div className="text-center"><div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-2xl">◌</div><h2 className="text-xl font-extrabold">WhatsApp עדיין לא מחובר</h2><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">לחץ על הכפתור. המערכת תכין חיבור ייעודי ותציג QR לסריקה.</p><button onClick={() => setStatus('creating')} className="mt-6 w-full rounded-xl bg-emerald-600 px-5 py-3 font-bold text-white hover:bg-emerald-700 sm:w-auto">חבר WhatsApp</button></div>}
-          {status === 'creating' && <div className="py-10 text-center"><div className="mx-auto mb-5 h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-emerald-600" /><h2 className="font-extrabold">מכין חיבור מאובטח...</h2><p className="mt-2 text-sm text-slate-500">בגרסה המחוברת, השרת ייצור חיבור ויחזיר QR.</p><button onClick={() => setStatus('waiting_for_qr')} className="mt-5 text-xs font-bold text-slate-400 underline">המשך להדמיית QR</button></div>}
-          {status === 'waiting_for_qr' && <div className="text-center"><h2 className="text-xl font-extrabold">סרוק את הקוד מהטלפון</h2><p className="mt-2 text-sm text-slate-500">WhatsApp → מכשירים מקושרים → קישור מכשיר</p><div className="mx-auto my-6 flex aspect-square w-64 items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-sm font-bold text-slate-400">QR דינמי יופיע כאן</div><div className="text-xs font-semibold text-amber-700">ממתין לסריקה...</div><button onClick={() => setStatus('connected')} className="mt-5 rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold">הדמיית חיבור מוצלח</button></div>}
-          {status === 'connected' && <div className="text-center"><div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-2xl">✓</div><h2 className="text-xl font-extrabold text-emerald-900">WhatsApp מחובר</h2><p className="mt-2 text-sm text-slate-500">החיבור פעיל ומוכן לשימוש.</p><div className="mx-auto mt-6 max-w-md rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-right text-sm text-emerald-900"><div className="font-bold">הכל מוכן</div><div className="mt-1 text-emerald-700">אפשר לתזמן הודעות ולהפעיל קמפיינים לקבוצות.</div></div><button onClick={() => setStatus('disconnected')} className="mt-6 text-sm font-bold text-red-600 hover:underline">נתק WhatsApp</button></div>}
+          {status === 'disconnected' && (
+            <div className="text-center">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-2xl">
+                ◌
+              </div>
+              <h2 className="text-xl font-extrabold">
+                WhatsApp עדיין לא מחובר
+              </h2>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+                לחץ על הכפתור. המערכת תיצור עבורך GREEN API Instance ייעודי
+                ותציג QR לסריקה.
+              </p>
+              <button
+                onClick={connect}
+                disabled={busy}
+                className="mt-6 w-full rounded-xl bg-emerald-600 px-5 py-3 font-bold text-white hover:bg-emerald-700 disabled:opacity-50 sm:w-auto"
+              >
+                {busy ? 'מכין חיבור...' : 'חבר WhatsApp'}
+              </button>
+            </div>
+          )}
+
+          {status === 'creating' && (
+            <div className="py-10 text-center">
+              <div className="mx-auto mb-5 h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-emerald-600" />
+              <h2 className="font-extrabold">מכין חיבור מאובטח...</h2>
+              <p className="mt-2 text-sm text-slate-500">
+                GREEN API מקים את ה-Instance. הסטטוס מתעדכן אוטומטית.
+              </p>
+            </div>
+          )}
+
+          {status === 'waiting_for_qr' && (
+            <div className="text-center">
+              <h2 className="text-xl font-extrabold">סרוק את הקוד מהטלפון</h2>
+              <p className="mt-2 text-sm text-slate-500">
+                WhatsApp → מכשירים מקושרים → קישור מכשיר
+              </p>
+
+              <div className="mx-auto my-6 flex aspect-square w-64 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                {qrDataUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={qrDataUrl}
+                    alt="WhatsApp QR"
+                    className="h-full w-full object-contain"
+                  />
+                ) : (
+                  <div className="text-sm font-bold text-slate-400">
+                    טוען QR...
+                  </div>
+                )}
+              </div>
+
+              <div className="text-xs font-semibold text-amber-700">
+                ממתין לסריקה... הקוד מתרענן אוטומטית
+              </div>
+
+              <button
+                type="button"
+                onClick={() => void loadQr()}
+                className="mt-5 rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold hover:bg-slate-50"
+              >
+                רענן QR
+              </button>
+            </div>
+          )}
+
+          {status === 'connected' && (
+            <div className="text-center">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-2xl">
+                ✓
+              </div>
+              <h2 className="text-xl font-extrabold text-emerald-900">
+                WhatsApp מחובר
+              </h2>
+              <p className="mt-2 text-sm text-slate-500">
+                החיבור פעיל ומוכן לשימוש.
+              </p>
+
+              <div className="mx-auto mt-6 max-w-md rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-right text-sm text-emerald-900">
+                <div className="font-bold">הכל מוכן</div>
+                <div className="mt-1 text-emerald-700">
+                  {phoneNumber
+                    ? `מספר מחובר: ${phoneNumber}`
+                    : 'אפשר לתזמן הודעות ולהפעיל קמפיינים לקבוצות.'}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {status === 'error' && (
+            <div className="py-8 text-center">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-2xl">
+                !
+              </div>
+              <h2 className="text-xl font-extrabold">החיבור דורש טיפול</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+                בדוק את ההגדרות ונסה שוב.
+              </p>
+              <button
+                onClick={() => void loadStatus()}
+                className="mt-5 rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold hover:bg-slate-50"
+              >
+                בדוק שוב
+              </button>
+            </div>
+          )}
         </section>
       </div>
     </AppShell>
