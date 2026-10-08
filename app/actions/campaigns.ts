@@ -53,7 +53,17 @@ export async function createGroupCampaign(input: {
     throw new Error('אחת הקבוצות שנבחרו אינה זמינה בחשבון שלך.');
   }
 
-  const nextRunAt = nextCampaignRun(uniqueDays, input.sendTime);
+  const nextRunAt = nextCampaignRun(
+    uniqueDays,
+    input.sendTime,
+    new Date(),
+    input.startDate,
+    input.endDate || null,
+  );
+
+  if (!nextRunAt) {
+    throw new Error('אין מועד פרסום עתידי בטווח התאריכים שנבחר.');
+  }
 
   const { data: campaign, error: campaignError } = await supabase
     .from('group_campaigns')
@@ -116,10 +126,12 @@ export async function setCampaignStatus(
       .single();
 
     if (error || !campaign) throw new Error('הקמפיין לא נמצא.');
-    payload.next_run_at = nextCampaignRun(
+    const nextRun = nextCampaignRun(
       campaign.days_of_week ?? [],
       campaign.send_time,
     );
+    if (!nextRun) throw new Error('אין מועד פרסום עתידי לקמפיין.');
+    payload.next_run_at = nextRun;
   }
 
   if (status === 'cancelled') {
