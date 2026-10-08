@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { assertAutomationSecret } from '@/lib/automation-auth';
 import { dateKeyInTimeZone, nextCampaignRun } from '@/lib/timezone';
+import { ensureHolidayGuardCalendar } from '@/lib/holidays';
 
 type ClaimedCampaign = {
   id: string;
@@ -51,6 +52,7 @@ export async function POST(request: Request) {
 
     const admin = createAdminClient();
 
+    await ensureHolidayGuardCalendar();
     await admin.rpc('recover_stale_campaign_claims');
     await admin.rpc('recover_stale_campaign_dispatches');
 
