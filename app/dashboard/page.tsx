@@ -1,12 +1,19 @@
 import Link from 'next/link';
 import AppShell from '@/components/AppShell';
+import { getDashboardData } from '@/lib/data';
 
-const upcoming = [
-  { target: 'יוסי כהן', type: 'הודעה אישית', body: 'תזכורת: הפגישה שלנו נקבעה למחר...', time: '15:30', tone: 'emerald' },
-  { target: '8 קבוצות', type: 'פרסום בקבוצות', body: 'מבצעי סוף השבוע החלו! קבלו הצצה...', time: '17:00', tone: 'blue' },
-];
+function formatTime(value: string) {
+  return new Intl.DateTimeFormat('he-IL', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Asia/Jerusalem',
+  }).format(new Date(value));
+}
 
-export default function Dashboard() {
+export default async function Dashboard() {
+  const data = await getDashboardData();
+  const isConnected = data.connection?.status === 'connected';
+
   return (
     <AppShell>
       <div className="pb-20 lg:pb-0">
@@ -22,21 +29,34 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <section className="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+        <section className={`mb-6 rounded-2xl border p-4 ${isConnected ? 'border-emerald-100 bg-emerald-50' : 'border-amber-100 bg-amber-50'}`}>
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
-              <span className="h-3 w-3 rounded-full bg-emerald-500 ring-4 ring-emerald-100" />
+              <span className={`h-3 w-3 rounded-full ring-4 ${isConnected ? 'bg-emerald-500 ring-emerald-100' : 'bg-amber-500 ring-amber-100'}`} />
               <div>
-                <div className="font-bold text-emerald-950">WhatsApp מחובר</div>
-                <div className="text-sm text-emerald-700">החיבור פעיל ומוכן לשליחה</div>
+                <div className={`font-bold ${isConnected ? 'text-emerald-950' : 'text-amber-950'}`}>
+                  {isConnected ? 'WhatsApp מחובר' : 'WhatsApp עדיין לא מחובר'}
+                </div>
+                <div className={`text-sm ${isConnected ? 'text-emerald-700' : 'text-amber-700'}`}>
+                  {isConnected
+                    ? data.connection?.phone_number
+                      ? `מספר מחובר: ${data.connection.phone_number}`
+                      : 'החיבור פעיל ומוכן לשליחה'
+                    : 'חבר את החשבון כדי להתחיל לשלוח בפועל'}
+                </div>
               </div>
             </div>
-            <Link href="/settings" className="text-sm font-bold text-emerald-800 hover:underline">ניהול חיבור</Link>
+            <Link href="/settings" className={`text-sm font-bold hover:underline ${isConnected ? 'text-emerald-800' : 'text-amber-800'}`}>ניהול חיבור</Link>
           </div>
         </section>
 
         <section className="mb-8 grid gap-4 md:grid-cols-4">
-          {[['5', 'מתוזמנות להיום'], ['2', 'קמפיינים פעילים'], ['11', 'קבוצות מחוברות'], ['0', 'שליחות שנכשלו']].map(([value, label]) => (
+          {[
+            [String(data.scheduledNext24h), 'מתוזמנות ל-24 השעות הקרובות'],
+            [String(data.activeCampaigns), 'קמפיינים פעילים'],
+            [String(data.groups), 'קבוצות זמינות'],
+            [String(data.failed), 'שליחות שנכשלו'],
+          ].map(([value, label]) => (
             <div key={label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="text-3xl font-black">{value}</div>
               <div className="mt-1 text-sm font-medium text-slate-500">{label}</div>
@@ -47,20 +67,25 @@ export default function Dashboard() {
         <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-100 p-5">
             <div>
-              <h2 className="text-lg font-extrabold">השליחות הקרובות</h2>
-              <p className="text-sm text-slate-500">מה אמור לצאת בשעות הקרובות</p>
+              <h2 className="text-lg font-extrabold">ההודעות הקרובות</h2>
+              <p className="text-sm text-slate-500">הודעות אישיות שמחכות לשליחה</p>
             </div>
-            <Link href="/calendar" className="text-sm font-bold text-emerald-700 hover:underline">פתח יומן</Link>
+            <Link href="/scheduler" className="text-sm font-bold text-emerald-700 hover:underline">לכל ההודעות</Link>
           </div>
           <div className="divide-y divide-slate-100">
-            {upcoming.map((item) => (
-              <div key={item.target + item.time} className="grid gap-3 p-5 sm:grid-cols-[1.1fr_1fr_2fr_auto] sm:items-center">
-                <div className="font-bold">{item.target}</div>
-                <div className={item.tone === 'emerald' ? 'text-sm font-bold text-emerald-700' : 'text-sm font-bold text-blue-700'}>{item.type}</div>
-                <div className="truncate text-sm text-slate-500">{item.body}</div>
-                <div className="font-mono text-sm font-bold text-slate-700">{item.time}</div>
+            {data.upcoming.map((item) => (
+              <div key={item.id} className="grid gap-3 p-5 sm:grid-cols-[1.1fr_2fr_auto] sm:items-center">
+                <div>
+                  <div className="font-bold">{item.recipient_name || 'ללא שם'}</div>
+                  <div className="text-xs text-slate-400">{item.recipient_number}</div>
+                </div>
+                <div className="truncate text-sm text-slate-500">{item.message_body}</div>
+                <div className="font-mono text-sm font-bold text-slate-700">{formatTime(item.scheduled_time)}</div>
               </div>
             ))}
+            {data.upcoming.length === 0 && (
+              <div className="p-10 text-center text-sm text-slate-400">אין הודעות שממתינות לשליחה כרגע.</div>
+            )}
           </div>
         </section>
       </div>
