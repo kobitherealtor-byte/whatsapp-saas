@@ -19,7 +19,6 @@ export default function NewScheduledMessage() {
     e.preventDefault();
     setLoading(true);
     try {
-      // הפעלת פונקציית השרת האמיתית
       await createScheduledMessage(formData);
       alert('ההודעה נשמרה ותוזמנה בבסיס הנתונים בהצלחה!');
       window.location.href = '/scheduler';
@@ -49,7 +48,7 @@ export default function NewScheduledMessage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">תוכן ההודעה *</label>
-            <textarea rows={4} required placeholder="מה לכתוב?" className="w-full p-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" value={formData.body} onChange={e => setFormData({...formData, body: e.target.value})} disabled={loading} />
+            <textarea rows={4} required placeholder="מה לכתוב בהודעה?" className="w-full p-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" value={formData.body} onChange={e => setFormData({...formData, body: e.target.value})} disabled={loading} />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -71,7 +70,7 @@ export default function NewScheduledMessage() {
           </div>
           <div className="flex gap-4 pt-4 border-t border-gray-100">
             <button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg transition" disabled={loading}>
-              {loading ? 'שומר בבסיס הנתונים...' : 'שמור ותזמן הודעה'}
+              {loading ? 'שומר ומסנכרן נתונים...' : 'שמור ותזמן הודעה'}
             </button>
           </div>
         </form>
