@@ -26,6 +26,7 @@ export default async function Dashboard() {
           <div className="flex flex-wrap gap-2">
             <Link href="/scheduler/new" className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-700">+ הודעה חדשה</Link>
             <Link href="/publisher/new" className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800">+ קמפיין קבוצות</Link>
+            <Link href="/broadcasts/new" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-800 hover:bg-emerald-100">+ קמפיין תפוצה</Link>
             <Link href="/system-status" className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">מצב מערכת</Link>
           </div>
         </header>
@@ -74,10 +75,11 @@ export default async function Dashboard() {
           </div>
         </section>
 
-        <section className="mb-8 grid gap-4 md:grid-cols-4">
+        <section className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           {[
             [String(data.scheduledNext24h), 'מתוזמנות ל-24 השעות הקרובות'],
-            [String(data.activeCampaigns), 'קמפיינים פעילים'],
+            [String(data.activeCampaigns), 'קמפיינים לקבוצות'],
+            [String(data.activeBroadcasts), 'קמפייני תפוצה'],
             [String(data.groups), 'קבוצות זמינות'],
             [String(data.failed), 'שליחות שנכשלו'],
           ].map(([value, label]) => (
