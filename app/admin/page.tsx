@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import AdminCustomersClient from '@/components/AdminCustomersClient';
 import AppShell from '@/components/AppShell';
 import { getAdminDashboardData } from '@/lib/admin';
 
@@ -50,53 +51,7 @@ export default async function AdminPage() {
           ))}
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="min-w-[1050px] w-full text-right text-sm">
-              <thead className="bg-slate-50 text-xs font-bold text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">לקוח</th>
-                  <th className="px-4 py-3">WhatsApp</th>
-                  <th className="px-4 py-3">תוכנית</th>
-                  <th className="px-4 py-3">שליחות בתקופה</th>
-                  <th className="px-4 py-3">ממתינות</th>
-                  <th className="px-4 py-3">קבוצות</th>
-                  <th className="px-4 py-3">תפוצה</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {data.customers.map((customer) => (
-                  <tr key={customer.id}>
-                    <td className="px-4 py-4">
-                      <div className="font-bold">{customer.businessName || 'ללא שם עסק'}</div>
-                      <div className="mt-1 text-xs text-slate-400">{customer.email}</div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="font-bold">{statusLabel(customer.whatsappStatus)}</div>
-                      <div className="mt-1 text-xs text-slate-400">
-                        {customer.phoneNumber || customer.providerState || '—'}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="font-bold">{customer.planCode}</div>
-                      <div className="text-xs text-slate-400">{customer.billingStatus}</div>
-                    </td>
-                    <td className="px-4 py-4 font-bold">
-                      {customer.sentThisPeriod} / {customer.monthlySendLimit}
-                    </td>
-                    <td className="px-4 py-4">{customer.pendingMessages}</td>
-                    <td className="px-4 py-4">{customer.activeGroupCampaigns}</td>
-                    <td className="px-4 py-4">{customer.activeBroadcasts}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {data.customers.length === 0 && (
-            <div className="p-10 text-center text-sm text-slate-400">עדיין אין לקוחות.</div>
-          )}
-        </section>
+        <AdminCustomersClient customers={data.customers} />
       </div>
     </AppShell>
   );
