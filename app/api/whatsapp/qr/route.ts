@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getQrCode } from '@/lib/green-api';
 import { assertUserRateLimit } from '@/lib/rate-limit';
+import { safeUserApiError } from '@/lib/api-error';
 
 export async function GET() {
   try {
@@ -43,11 +44,7 @@ export async function GET() {
 
     return NextResponse.json(qr);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'unknown_error';
-    const status = message === 'rate_limited' ? 429 : 500;
-    return NextResponse.json(
-      { error: message === 'rate_limited' ? 'יותר מדי בקשות. נסה שוב בעוד רגע.' : message },
-      { status },
-    );
+    const safe = safeUserApiError(error, 'לא הצלחנו לקבל קוד QR כרגע.');
+    return NextResponse.json({ error: safe.message }, { status: safe.status });
   }
 }
