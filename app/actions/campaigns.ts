@@ -120,7 +120,7 @@ export async function setCampaignStatus(
 ) {
   const { supabase, user } = await requireUser();
 
-  const payload: Record<string, string | null> = { status };
+  const payload: Record<string, string | number | null> = { status };
 
   if (status === 'active') {
     const { data: campaign, error } = await supabase
@@ -140,6 +140,8 @@ export async function setCampaignStatus(
     );
     if (!nextRun) throw new Error('אין מועד פרסום עתידי לקמפיין.');
     payload.next_run_at = nextRun;
+    payload.prepare_fail_count = 0;
+    payload.last_error = null;
   }
 
   if (status === 'cancelled') {
