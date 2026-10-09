@@ -112,6 +112,11 @@ export default function SchedulerClient({ messages }: { messages: ScheduledMessa
               <div className="text-sm font-medium text-slate-600">{formatDate(msg.scheduled_time)}</div>
               <div><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset ${statusMap[msg.status].className}`}>{statusMap[msg.status].label}</span></div>
               <div className="flex flex-wrap gap-3 text-xs font-bold">
+                {msg.status === 'pending' && (
+                  <Link href={`/scheduler/${msg.id}/edit`} className="text-emerald-700 hover:text-emerald-900">
+                    עריכה
+                  </Link>
+                )}
                 <button
                   type="button"
                   disabled={busyId === msg.id}
