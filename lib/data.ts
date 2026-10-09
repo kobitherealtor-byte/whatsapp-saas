@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export type ScheduledMessageRow = {
   id: string;
@@ -259,29 +260,50 @@ export type DeliveryHistoryItem = {
   detail: string | null;
   error: string | null;
   retryMessageId: string | null;
+  retryDispatchId: string | null;
 };
 
 export async function getDeliveryHistory() {
-  const { supabase } = await getAuthedClient();
+  const { supabase, user } = await getAuthedClient();
+  const admin = createAdminClient();
 
-  const [messagesResult, logsResult] = await Promise.all([
+  const [messagesResult, dispatchesResult] = await Promise.all([
     supabase
       .from('scheduled_messages')
       .select('id, recipient_name, recipient_number, message_body, status, sent_at, error_text, updated_at')
       .in('status', ['sent', 'failed'])
       .order('updated_at', { ascending: false })
       .limit(150),
-    supabase
-      .from('send_logs')
-      .select('id, entity_type, status, destination, detail, error_message, sent_at, created_at')
-      .eq('entity_type', 'group_campaign')
+    admin
+      .from('campaign_dispatches')
+      .select('id, campaign_id, group_id, destination_chat_id, message_body, status, error_text, sent_at, updated_at')
+      .eq('user_id', user.id)
       .in('status', ['sent', 'failed', 'skipped'])
-      .order('created_at', { ascending: false })
+      .order('updated_at', { ascending: false })
       .limit(150),
   ]);
 
   if (messagesResult.error) throw new Error(messagesResult.error.message);
-  if (logsResult.error) throw new Error(logsResult.error.message);
+  if (dispatchesResult.error) throw new Error(dispatchesResult.error.message);
+
+  const dispatches = dispatchesResult.data ?? [];
+  const groupIds = [...new Set(dispatches.map((item) => item.group_id).filter(Boolean))];
+  const campaignIds = [...new Set(dispatches.map((item) => item.campaign_id).filter(Boolean))];
+
+  const [groupsResult, campaignsResult] = await Promise.all([
+    groupIds.length
+      ? admin.from('whatsapp_groups').select('id, name').in('id', groupIds)
+      : Promise.resolve({ data: [], error: null }),
+    campaignIds.length
+      ? admin.from('group_campaigns').select('id, name').in('id', campaignIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (groupsResult.error) throw new Error(groupsResult.error.message);
+  if (campaignsResult.error) throw new Error(campaignsResult.error.message);
+
+  const groupNames = new Map((groupsResult.data ?? []).map((item) => [item.id, item.name]));
+  const campaignNames = new Map((campaignsResult.data ?? []).map((item) => [item.id, item.name]));
 
   const personal: DeliveryHistoryItem[] = (messagesResult.data ?? []).map((item) => ({
     id: `message:${item.id}`,
@@ -293,18 +315,20 @@ export async function getDeliveryHistory() {
     detail: item.message_body,
     error: item.error_text,
     retryMessageId: item.status === 'failed' ? item.id : null,
+    retryDispatchId: null,
   }));
 
-  const group: DeliveryHistoryItem[] = (logsResult.data ?? []).map((item) => ({
-    id: `log:${item.id}`,
+  const group: DeliveryHistoryItem[] = dispatches.map((item) => ({
+    id: `dispatch:${item.id}`,
     source: 'group',
-    title: 'פרסום לקבוצה',
-    destination: item.destination || 'קבוצת WhatsApp',
+    title: campaignNames.get(item.campaign_id) || 'פרסום לקבוצה',
+    destination: groupNames.get(item.group_id) || item.destination_chat_id || 'קבוצת WhatsApp',
     status: item.status as 'sent' | 'failed' | 'skipped',
-    occurredAt: item.sent_at || item.created_at,
-    detail: item.detail,
-    error: item.error_message,
+    occurredAt: item.sent_at || item.updated_at,
+    detail: item.message_body,
+    error: item.error_text,
     retryMessageId: null,
+    retryDispatchId: item.status === 'failed' ? item.id : null,
   }));
 
   return [...personal, ...group]
