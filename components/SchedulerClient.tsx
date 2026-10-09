@@ -7,6 +7,7 @@ import type { ScheduledMessageRow } from '@/lib/data';
 import {
   cancelScheduledMessage,
   duplicateScheduledMessage,
+  sendScheduledMessageNow,
 } from '@/app/actions/messages';
 
 type Filter = 'all' | ScheduledMessageRow['status'];
@@ -50,6 +51,20 @@ export default function SchedulerClient({ messages }: { messages: ScheduledMessa
       router.refresh();
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'הביטול נכשל.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const sendNow = async (id: string) => {
+    if (!window.confirm('לשלוח את ההודעה עכשיו?')) return;
+    setBusyId(id);
+    setError('');
+    try {
+      await sendScheduledMessageNow(id);
+      router.refresh();
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'השליחה המיידית נכשלה.');
     } finally {
       setBusyId(null);
     }
@@ -113,9 +128,19 @@ export default function SchedulerClient({ messages }: { messages: ScheduledMessa
               <div><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset ${statusMap[msg.status].className}`}>{statusMap[msg.status].label}</span></div>
               <div className="flex flex-wrap gap-3 text-xs font-bold">
                 {msg.status === 'pending' && (
-                  <Link href={`/scheduler/${msg.id}/edit`} className="text-emerald-700 hover:text-emerald-900">
-                    עריכה
-                  </Link>
+                  <>
+                    <button
+                      type="button"
+                      disabled={busyId === msg.id}
+                      onClick={() => void sendNow(msg.id)}
+                      className="text-emerald-700 hover:text-emerald-900 disabled:opacity-50"
+                    >
+                      שלח עכשיו
+                    </button>
+                    <Link href={`/scheduler/${msg.id}/edit`} className="text-slate-700 hover:text-slate-950">
+                      עריכה
+                    </Link>
+                  </>
                 )}
                 <button
                   type="button"
