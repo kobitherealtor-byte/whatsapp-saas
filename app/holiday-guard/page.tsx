@@ -1,5 +1,6 @@
 import AppShell from '@/components/AppShell';
 import { getUpcomingHolidayDates } from '@/lib/data';
+import { ensureHolidayGuardCalendar } from '@/lib/holidays';
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('he-IL', {
@@ -12,6 +13,7 @@ function formatDate(value: string) {
 }
 
 export default async function HolidayGuardPage() {
+  await ensureHolidayGuardCalendar();
   const holidays = await getUpcomingHolidayDates(40);
 
   return (
