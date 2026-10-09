@@ -32,11 +32,16 @@ export default async function AccountPage() {
             <h1 className="text-3xl font-black">החשבון שלי</h1>
             <p className="mt-1 text-slate-500">פרטים בסיסיים של סביבת העבודה שלך.</p>
           </div>
-          {isAdmin && (
-            <Link href="/admin" className="text-sm font-bold text-emerald-700 hover:underline">
-              Admin
+          <div className="flex items-center gap-3">
+            <Link href="/billing" className="text-sm font-bold text-slate-600 hover:underline">
+              תוכנית ושימוש
             </Link>
-          )}
+            {isAdmin && (
+              <Link href="/admin" className="text-sm font-bold text-emerald-700 hover:underline">
+                Admin
+              </Link>
+            )}
+          </div>
         </div>
         <AccountForm
           email={user.email ?? ''}
