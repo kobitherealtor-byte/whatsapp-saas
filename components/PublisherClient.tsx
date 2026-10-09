@@ -144,21 +144,19 @@ export default function PublisherClient({
                 </div>
 
                 <div className="flex flex-wrap gap-2 text-xs font-bold">
+                  <Link
+                    href={`/publisher/${campaign.id}`}
+                    className="text-emerald-700 hover:text-emerald-900"
+                  >
+                    סטטוס
+                  </Link>
                   {(campaign.status === 'active' || campaign.status === 'paused') && (
-                    <>
-                      <Link
-                        href={`/publisher/${campaign.id}`}
-                        className="text-emerald-700 hover:text-emerald-900"
-                      >
-                        סטטוס
-                      </Link>
-                      <Link
-                        href={`/publisher/${campaign.id}/edit`}
-                        className="text-slate-700 hover:text-slate-950"
-                      >
-                        עריכה
-                      </Link>
-                    </>
+                    <Link
+                      href={`/publisher/${campaign.id}/edit`}
+                      className="text-slate-700 hover:text-slate-950"
+                    >
+                      עריכה
+                    </Link>
                   )}
 
                   {campaign.status === 'active' && (
