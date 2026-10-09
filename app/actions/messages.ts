@@ -196,6 +196,7 @@ export async function updateScheduledMessage(
 
 export async function retryScheduledMessage(id: string) {
   const { supabase, user } = await requireUser();
+  await assertCanCreatePendingMessage(user.id);
 
   const { data: message, error: messageError } = await supabase
     .from('scheduled_messages')
