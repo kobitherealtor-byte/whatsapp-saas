@@ -8,6 +8,7 @@ const protectedPrefixes = [
   '/calendar',
   '/history',
   '/groups',
+  '/broadcasts',
   '/account',
   '/holiday-guard',
   '/system-status',
