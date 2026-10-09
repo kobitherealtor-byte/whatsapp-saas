@@ -260,3 +260,35 @@ export async function sendGreenApiFileByUrl(input: {
 
   return data.idMessage;
 }
+
+
+export async function logoutGreenApiInstance(input: {
+  apiUrl: string;
+  idInstance: string;
+  apiTokenInstance: string;
+}) {
+  const response = await fetch(
+    `${input.apiUrl.replace(/\/$/, '')}/waInstance${input.idInstance}/logout/${input.apiTokenInstance}`,
+    {
+      method: 'GET',
+      cache: 'no-store',
+    },
+  );
+
+  const raw = await response.text();
+  let data: { isLogout?: boolean; message?: string } = {};
+
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch {
+    data = { message: raw };
+  }
+
+  if (!response.ok || data.isLogout !== true) {
+    throw new Error(
+      data.message || `GREEN API logout failed with HTTP ${response.status}`,
+    );
+  }
+
+  return true;
+}
