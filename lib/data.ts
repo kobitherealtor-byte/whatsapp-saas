@@ -500,3 +500,65 @@ export async function getCampaignDispatches(campaignId: string) {
     })),
   };
 }
+
+
+export type AutomationHealth = {
+  status: 'healthy' | 'attention' | 'idle';
+  lastRunAt: string | null;
+  lastRunStatus: 'success' | 'failed' | 'running' | null;
+  runs24h: number;
+  failures24h: number;
+  sent24h: number;
+  failed24h: number;
+  lastError: string | null;
+};
+
+export async function getAutomationHealth(): Promise<AutomationHealth> {
+  await getAuthedClient();
+  const admin = createAdminClient();
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+  const [{ data: latest, error: latestError }, { data: recent, error: recentError }] =
+    await Promise.all([
+      admin
+        .from('automation_runs')
+        .select('started_at, finished_at, status, personal_sent, personal_failed, group_sent, group_failed, error_text')
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      admin
+        .from('automation_runs')
+        .select('status, personal_sent, personal_failed, group_sent, group_failed')
+        .gte('started_at', since)
+        .limit(500),
+    ]);
+
+  if (latestError) throw new Error(latestError.message);
+  if (recentError) throw new Error(recentError.message);
+
+  const rows = recent ?? [];
+  const failures24h = rows.filter((row) => row.status === 'failed').length;
+  const sent24h = rows.reduce(
+    (sum, row) => sum + Number(row.personal_sent ?? 0) + Number(row.group_sent ?? 0),
+    0,
+  );
+  const failed24h = rows.reduce(
+    (sum, row) => sum + Number(row.personal_failed ?? 0) + Number(row.group_failed ?? 0),
+    0,
+  );
+
+  return {
+    status: !latest
+      ? 'idle'
+      : latest.status === 'failed'
+        ? 'attention'
+        : 'healthy',
+    lastRunAt: latest?.finished_at ?? latest?.started_at ?? null,
+    lastRunStatus: (latest?.status as AutomationHealth['lastRunStatus']) ?? null,
+    runs24h: rows.length,
+    failures24h,
+    sent24h,
+    failed24h,
+    lastError: latest?.error_text ?? null,
+  };
+}
