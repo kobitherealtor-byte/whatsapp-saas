@@ -562,3 +562,73 @@ export async function getAutomationHealth(): Promise<AutomationHealth> {
     lastError: latest?.error_text ?? null,
   };
 }
+
+
+export type BroadcastCampaignRow = {
+  id: string;
+  name: string;
+  message_body: string;
+  media_url: string | null;
+  scheduled_for: string;
+  status: 'draft' | 'active' | 'paused' | 'completed' | 'cancelled';
+  send_interval_seconds: number;
+  total_recipients: number;
+  sent_count: number;
+  failed_count: number;
+  skipped_count: number;
+  last_error: string | null;
+  created_at: string;
+};
+
+export async function getBroadcastCampaigns() {
+  const { supabase } = await getAuthedClient();
+
+  const { data, error } = await supabase
+    .from('broadcast_campaigns')
+    .select('id, name, message_body, media_url, scheduled_for, status, send_interval_seconds, total_recipients, sent_count, failed_count, skipped_count, last_error, created_at')
+    .order('created_at', { ascending: false })
+    .limit(100);
+
+  if (error) throw new Error(error.message);
+  return (data ?? []) as BroadcastCampaignRow[];
+}
+
+export async function getBroadcastCampaignById(id: string) {
+  const { user } = await getAuthedClient();
+  const admin = createAdminClient();
+
+  const { data: campaign, error: campaignError } = await admin
+    .from('broadcast_campaigns')
+    .select('id, name, message_body, media_url, scheduled_for, status, send_interval_seconds, total_recipients, sent_count, failed_count, skipped_count, last_error, created_at')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (campaignError) throw new Error(campaignError.message);
+  if (!campaign) throw new Error('Broadcast campaign not found');
+
+  const { data: recipients, error: recipientsError } = await admin
+    .from('broadcast_recipients')
+    .select('id, recipient_name, recipient_number, status, retry_count, sent_at, error_text, available_at, updated_at')
+    .eq('campaign_id', id)
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: true })
+    .limit(5000);
+
+  if (recipientsError) throw new Error(recipientsError.message);
+
+  return {
+    campaign: campaign as BroadcastCampaignRow,
+    recipients: (recipients ?? []) as Array<{
+      id: string;
+      recipient_name: string | null;
+      recipient_number: string;
+      status: 'pending' | 'processing' | 'sent' | 'failed' | 'skipped' | 'cancelled';
+      retry_count: number;
+      sent_at: string | null;
+      error_text: string | null;
+      available_at: string;
+      updated_at: string;
+    }>,
+  };
+}
