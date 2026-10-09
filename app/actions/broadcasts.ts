@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { wakeAutomationWorker } from '@/lib/automation-wake';
 import { assertAccountOperational, getAccountLimits } from '@/lib/account-limits';
 import { writeAuditEvent } from '@/lib/audit';
+import { parseIsraelLocalDateTimeInput } from '@/lib/timezone';
 
 type RecipientInput = {
   name?: string;
@@ -49,7 +50,7 @@ export async function createBroadcastCampaign(input: {
   if (!input.name.trim()) throw new Error('שם הקמפיין חסר.');
   if (!input.message.trim()) throw new Error('תוכן ההודעה חסר.');
 
-  const scheduledFor = new Date(input.scheduledAt);
+  const scheduledFor = parseIsraelLocalDateTimeInput(input.scheduledAt);
   if (Number.isNaN(scheduledFor.getTime())) throw new Error('תאריך או שעה אינם תקינים.');
   if (scheduledFor.getTime() <= Date.now()) throw new Error('זמן השליחה חייב להיות בעתיד.');
 
