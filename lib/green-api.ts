@@ -158,6 +158,10 @@ export async function getChats(input: {
     id?: string;
     name?: string;
     archive?: boolean;
+    type?: 'user' | 'group' | string;
+    unreadCount?: number;
+    ephemeralExpiration?: number;
+    ephemeralSettingTimestamp?: number;
   }>;
 }
 
