@@ -52,5 +52,10 @@ export async function getNextAutomationRunAt() {
     .filter((date) => !Number.isNaN(date.getTime()))
     .sort((a, b) => a.getTime() - b.getTime());
 
-  return candidates[0]?.toISOString() ?? null;
+  if (!candidates[0]) return null;
+
+  const minimumNextRun = Date.now() + 15_000;
+  const nextTime = Math.max(candidates[0].getTime(), minimumNextRun);
+
+  return new Date(nextTime).toISOString();
 }
