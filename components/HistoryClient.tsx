@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { retryScheduledMessage } from '@/app/actions/messages';
 import { retryCampaignDispatch } from '@/app/actions/dispatches';
+import { retryBroadcastRecipient } from '@/app/actions/broadcasts';
 import type { DeliveryHistoryItem } from '@/lib/data';
 
 const statusLabels = {
@@ -23,12 +24,18 @@ function formatDate(value: string) {
 export default function HistoryClient({ items }: { items: DeliveryHistoryItem[] }) {
   const router = useRouter();
   const [filter, setFilter] = useState<'all' | 'sent' | 'failed' | 'skipped'>('all');
+  const [sourceFilter, setSourceFilter] = useState<'all' | DeliveryHistoryItem['source']>('all');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   const filtered = useMemo(
-    () => items.filter((item) => filter === 'all' || item.status === filter),
-    [filter, items],
+    () =>
+      items.filter(
+        (item) =>
+          (filter === 'all' || item.status === filter) &&
+          (sourceFilter === 'all' || item.source === sourceFilter),
+      ),
+    [filter, items, sourceFilter],
   );
 
   const retryMessage = async (id: string) => {
@@ -57,7 +64,7 @@ export default function HistoryClient({ items }: { items: DeliveryHistoryItem[] 
         </div>
       )}
 
-      <div className="mb-5 flex flex-wrap gap-2">
+      <div className="mb-3 flex flex-wrap gap-2">
         {([
           ['all', 'הכל'],
           ['sent', 'נשלח'],
@@ -75,6 +82,29 @@ export default function HistoryClient({ items }: { items: DeliveryHistoryItem[] 
         ))}
       </div>
 
+      <div className="mb-5 flex flex-wrap gap-2">
+        {([
+          ['all', 'כל הסוגים'],
+          ['personal', 'אישי'],
+          ['group', 'קבוצות'],
+          ['broadcast', 'תפוצה'],
+          ['inbox', 'Inbox'],
+        ] as const).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setSourceFilter(value)}
+            className={`rounded-xl px-3 py-2 text-xs font-bold ${
+              sourceFilter === value
+                ? 'bg-emerald-600 text-white'
+                : 'bg-white text-slate-600 ring-1 ring-slate-200'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="hidden grid-cols-[.7fr_1.1fr_1.4fr_1fr_.7fr] gap-4 border-b border-slate-100 bg-slate-50 px-5 py-3 text-xs font-bold text-slate-500 md:grid">
           <div>סוג</div><div>יעד</div><div>פרטים</div><div>זמן</div><div>סטטוס</div>
@@ -83,7 +113,15 @@ export default function HistoryClient({ items }: { items: DeliveryHistoryItem[] 
         <div className="divide-y divide-slate-100">
           {filtered.map((item) => (
             <div key={item.id} className="grid gap-3 p-5 md:grid-cols-[.7fr_1.1fr_1.4fr_1fr_.7fr] md:items-center">
-              <div className="text-sm font-bold">{item.source === 'personal' ? 'אישי' : 'קבוצה'}</div>
+              <div className="text-sm font-bold">
+                {item.source === 'personal'
+                  ? 'אישי'
+                  : item.source === 'group'
+                    ? 'קבוצה'
+                    : item.source === 'broadcast'
+                      ? 'תפוצה'
+                      : 'Inbox'}
+              </div>
               <div>
                 <div className="text-sm font-bold">{item.title}</div>
                 <div className="text-xs text-slate-400">{item.destination}</div>
@@ -108,6 +146,31 @@ export default function HistoryClient({ items }: { items: DeliveryHistoryItem[] 
                     type="button"
                     disabled={busyId === item.retryMessageId}
                     onClick={() => void retryMessage(item.retryMessageId!)}
+                    className="text-xs font-bold text-emerald-700 hover:text-emerald-900 disabled:opacity-50"
+                  >
+                    נסה שוב
+                  </button>
+                )}
+                {item.retryBroadcastRecipientId && (
+                  <button
+                    type="button"
+                    disabled={busyId === item.retryBroadcastRecipientId}
+                    onClick={async () => {
+                      setBusyId(item.retryBroadcastRecipientId);
+                      setError('');
+                      try {
+                        await retryBroadcastRecipient(item.retryBroadcastRecipientId!);
+                        router.refresh();
+                      } catch (retryError) {
+                        setError(
+                          retryError instanceof Error
+                            ? retryError.message
+                            : 'הניסיון החוזר נכשל.',
+                        );
+                      } finally {
+                        setBusyId(null);
+                      }
+                    }}
                     className="text-xs font-bold text-emerald-700 hover:text-emerald-900 disabled:opacity-50"
                   >
                     נסה שוב
