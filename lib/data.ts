@@ -522,13 +522,13 @@ export async function getAutomationHealth(): Promise<AutomationHealth> {
     await Promise.all([
       admin
         .from('automation_runs')
-        .select('started_at, finished_at, status, personal_sent, personal_failed, group_sent, group_failed, error_text')
+        .select('started_at, finished_at, status, personal_sent, personal_failed, group_sent, group_failed, broadcast_sent, broadcast_failed, error_text')
         .order('started_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
       admin
         .from('automation_runs')
-        .select('status, personal_sent, personal_failed, group_sent, group_failed')
+        .select('status, personal_sent, personal_failed, group_sent, group_failed, broadcast_sent, broadcast_failed')
         .gte('started_at', since)
         .limit(500),
     ]);
@@ -539,11 +539,19 @@ export async function getAutomationHealth(): Promise<AutomationHealth> {
   const rows = recent ?? [];
   const failures24h = rows.filter((row) => row.status === 'failed').length;
   const sent24h = rows.reduce(
-    (sum, row) => sum + Number(row.personal_sent ?? 0) + Number(row.group_sent ?? 0),
+    (sum, row) =>
+      sum +
+      Number(row.personal_sent ?? 0) +
+      Number(row.group_sent ?? 0) +
+      Number(row.broadcast_sent ?? 0),
     0,
   );
   const failed24h = rows.reduce(
-    (sum, row) => sum + Number(row.personal_failed ?? 0) + Number(row.group_failed ?? 0),
+    (sum, row) =>
+      sum +
+      Number(row.personal_failed ?? 0) +
+      Number(row.group_failed ?? 0) +
+      Number(row.broadcast_failed ?? 0),
     0,
   );
 
