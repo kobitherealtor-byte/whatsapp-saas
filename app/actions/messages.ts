@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { wakeAutomationWorker } from '@/lib/automation-wake';
-import { assertCanCreatePendingMessage } from '@/lib/account-limits';
+import { assertAccountOperational, assertCanCreatePendingMessage } from '@/lib/account-limits';
 
 async function requireUser() {
   const supabase = await createClient();
@@ -28,6 +28,7 @@ export async function createScheduledMessage(formData: {
   mediaUrl?: string;
 }) {
   const { supabase, user } = await requireUser();
+  await assertAccountOperational(user.id);
   await assertCanCreatePendingMessage(user.id);
 
   const recipient = formData.recipient.replace(/[^0-9+]/g, '');
@@ -196,6 +197,7 @@ export async function updateScheduledMessage(
 
 export async function retryScheduledMessage(id: string) {
   const { supabase, user } = await requireUser();
+  await assertAccountOperational(user.id);
   await assertCanCreatePendingMessage(user.id);
 
   const { data: message, error: messageError } = await supabase
@@ -237,6 +239,7 @@ export async function retryScheduledMessage(id: string) {
 
 export async function sendScheduledMessageNow(id: string) {
   const { supabase, user } = await requireUser();
+  await assertAccountOperational(user.id);
 
   const { data: message, error: messageError } = await supabase
     .from('scheduled_messages')
