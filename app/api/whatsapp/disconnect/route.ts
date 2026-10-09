@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { logoutGreenApiInstance } from '@/lib/green-api';
 import { safeUserApiError } from '@/lib/api-error';
+import { assertUserRateLimit } from '@/lib/rate-limit';
 
 export async function POST() {
   try {
@@ -14,6 +15,13 @@ export async function POST() {
     if (!user) {
       return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
     }
+
+    await assertUserRateLimit({
+      userId: user.id,
+      bucket: 'whatsapp-disconnect',
+      limit: 3,
+      windowSeconds: 10 * 60,
+    });
 
     const admin = createAdminClient();
 
