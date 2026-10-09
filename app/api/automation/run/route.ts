@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { assertAutomationSecret } from '@/lib/automation-auth';
 import { getNextAutomationRunAt } from '@/lib/automation-next';
+import { createAdminClient } from '@/lib/supabase/admin';
 import {
   normalizePersonalChatId,
   sendGreenApiFileByUrl,
@@ -85,9 +86,19 @@ async function sendJob(
 
 export async function POST(request: Request) {
   const startedAt = Date.now();
+  let runId: string | null = null;
 
   try {
     assertAutomationSecret(request);
+
+    const admin = createAdminClient();
+    const { data: runLog } = await admin
+      .from('automation_runs')
+      .insert({ status: 'running' })
+      .select('id')
+      .single();
+
+    runId = runLog?.id ?? null;
 
     const secret = process.env.AUTOMATION_SHARED_SECRET!;
     const origin = new URL(request.url).origin;
@@ -199,6 +210,25 @@ export async function POST(request: Request) {
     }
 
     const nextRunAt = await getNextAutomationRunAt();
+    const durationMs = Date.now() - startedAt;
+
+    if (runId) {
+      await admin
+        .from('automation_runs')
+        .update({
+          finished_at: new Date().toISOString(),
+          status: 'success',
+          personal_claimed: personalClaim.jobs.length,
+          personal_sent: personalSent,
+          personal_failed: personalFailed,
+          group_claimed: campaignClaim.jobs.length,
+          group_sent: groupSent,
+          group_failed: groupFailed,
+          duration_ms: durationMs,
+          error_text: null,
+        })
+        .eq('id', runId);
+    }
 
     return NextResponse.json({
       ok: true,
@@ -213,16 +243,34 @@ export async function POST(request: Request) {
         failed: groupFailed,
       },
       nextRunAt,
-      durationMs: Date.now() - startedAt,
+      durationMs,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'unknown_error';
+    const durationMs = Date.now() - startedAt;
+
+    if (runId) {
+      try {
+        const admin = createAdminClient();
+        await admin
+          .from('automation_runs')
+          .update({
+            finished_at: new Date().toISOString(),
+            status: 'failed',
+            duration_ms: durationMs,
+            error_text: message,
+          })
+          .eq('id', runId);
+      } catch {
+        // Preserve the original worker error even if logging fails.
+      }
+    }
 
     return NextResponse.json(
       {
         ok: false,
         error: message,
-        durationMs: Date.now() - startedAt,
+        durationMs,
       },
       { status: message === 'unauthorized' ? 401 : 500 },
     );
