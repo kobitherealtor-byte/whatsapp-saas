@@ -229,3 +229,40 @@ export async function retryScheduledMessage(id: string) {
   revalidatePath('/history');
   await wakeAutomationWorker();
 }
+
+
+export async function sendScheduledMessageNow(id: string) {
+  const { supabase, user } = await requireUser();
+
+  const { data: message, error: messageError } = await supabase
+    .from('scheduled_messages')
+    .select('status')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single();
+
+  if (messageError || !message) throw new Error('ההודעה לא נמצאה.');
+  if (message.status !== 'pending') {
+    throw new Error('אפשר לשלוח עכשיו רק הודעה שממתינה.');
+  }
+
+  const { error } = await supabase
+    .from('scheduled_messages')
+    .update({
+      scheduled_time: new Date(Date.now() + 15_000).toISOString(),
+      recurrence: 'none',
+      retry_count: 0,
+      error_text: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .eq('status', 'pending');
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/dashboard');
+  revalidatePath('/scheduler');
+  revalidatePath('/calendar');
+  await wakeAutomationWorker();
+}
