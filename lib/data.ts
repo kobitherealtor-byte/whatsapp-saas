@@ -100,7 +100,8 @@ export async function getDashboardData() {
     messagesCountResult,
     campaignsCountResult,
     groupsCountResult,
-    failedCountResult,
+    failedMessagesCountResult,
+    failedDispatchesCountResult,
     profileResult,
   ] = await Promise.all([
     supabase
@@ -129,7 +130,11 @@ export async function getDashboardData() {
       .select('*', { count: 'exact', head: true })
       .eq('is_active', true),
     supabase
-      .from('send_logs')
+      .from('scheduled_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'failed'),
+    supabase
+      .from('campaign_dispatches')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'failed'),
     supabase
@@ -144,7 +149,8 @@ export async function getDashboardData() {
     messagesCountResult.error,
     campaignsCountResult.error,
     groupsCountResult.error,
-    failedCountResult.error,
+    failedMessagesCountResult.error,
+    failedDispatchesCountResult.error,
     profileResult.error,
   ].find(Boolean);
 
@@ -156,7 +162,9 @@ export async function getDashboardData() {
     scheduledNext24h: messagesCountResult.count ?? 0,
     activeCampaigns: campaignsCountResult.count ?? 0,
     groups: groupsCountResult.count ?? 0,
-    failed: failedCountResult.count ?? 0,
+    failed:
+      (failedMessagesCountResult.count ?? 0) +
+      (failedDispatchesCountResult.count ?? 0),
     businessName: profileResult.data?.business_name ?? null,
   };
 }
