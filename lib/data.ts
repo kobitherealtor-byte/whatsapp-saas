@@ -101,7 +101,9 @@ export async function getDashboardData() {
     messagesCountResult,
     campaignsCountResult,
     groupsCountResult,
+    broadcastsCountResult,
     failedMessagesCountResult,
+    failedBroadcastsCountResult,
     failedDispatchesCountResult,
     profileResult,
   ] = await Promise.all([
@@ -131,11 +133,20 @@ export async function getDashboardData() {
       .select('*', { count: 'exact', head: true })
       .eq('is_active', true),
     supabase
+      .from('broadcast_campaigns')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'active'),
+    supabase
       .from('scheduled_messages')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'failed'),
     admin
       .from('campaign_dispatches')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'failed'),
+    admin
+      .from('broadcast_recipients')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .eq('status', 'failed'),
@@ -151,8 +162,10 @@ export async function getDashboardData() {
     messagesCountResult.error,
     campaignsCountResult.error,
     groupsCountResult.error,
+    broadcastsCountResult.error,
     failedMessagesCountResult.error,
     failedDispatchesCountResult.error,
+    failedBroadcastsCountResult.error,
     profileResult.error,
   ].find(Boolean);
 
@@ -164,9 +177,11 @@ export async function getDashboardData() {
     scheduledNext24h: messagesCountResult.count ?? 0,
     activeCampaigns: campaignsCountResult.count ?? 0,
     groups: groupsCountResult.count ?? 0,
+    activeBroadcasts: broadcastsCountResult.count ?? 0,
     failed:
       (failedMessagesCountResult.count ?? 0) +
-      (failedDispatchesCountResult.count ?? 0),
+      (failedDispatchesCountResult.count ?? 0) +
+      (failedBroadcastsCountResult.count ?? 0),
     businessName: profileResult.data?.business_name ?? null,
   };
 }
@@ -176,7 +191,7 @@ export type CalendarEvent = {
   id: string;
   title: string;
   startsAt: string;
-  type: 'scheduler' | 'publisher';
+  type: 'scheduler' | 'publisher' | 'broadcast';
   status: string;
   detail: string;
 };
@@ -187,7 +202,7 @@ export async function getCalendarEvents() {
   const start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
   const end = new Date(now.getFullYear(), now.getMonth() + 3, 1).toISOString();
 
-  const [messagesResult, campaignsResult] = await Promise.all([
+  const [messagesResult, campaignsResult, broadcastsResult] = await Promise.all([
     supabase
       .from('scheduled_messages')
       .select('id, recipient_name, recipient_number, message_body, scheduled_time, status')
@@ -203,10 +218,18 @@ export async function getCalendarEvents() {
       .lt('next_run_at', end)
       .in('status', ['active', 'paused'])
       .order('next_run_at', { ascending: true }),
+    supabase
+      .from('broadcast_campaigns')
+      .select('id, name, message_body, scheduled_for, status')
+      .gte('scheduled_for', start)
+      .lt('scheduled_for', end)
+      .in('status', ['active', 'paused'])
+      .order('scheduled_for', { ascending: true }),
   ]);
 
   if (messagesResult.error) throw new Error(messagesResult.error.message);
   if (campaignsResult.error) throw new Error(campaignsResult.error.message);
+  if (broadcastsResult.error) throw new Error(broadcastsResult.error.message);
 
   const messageEvents: CalendarEvent[] = (messagesResult.data ?? []).map((item) => ({
     id: `message:${item.id}`,
@@ -230,7 +253,16 @@ export async function getCalendarEvents() {
       detail: item.message_body,
     }));
 
-  return [...messageEvents, ...campaignEvents].sort(
+  const broadcastEvents: CalendarEvent[] = (broadcastsResult.data ?? []).map((item) => ({
+    id: `broadcast:${item.id}`,
+    title: `תפוצה: ${item.name}`,
+    startsAt: item.scheduled_for,
+    type: 'broadcast',
+    status: item.status,
+    detail: item.message_body,
+  }));
+
+  return [...messageEvents, ...campaignEvents, ...broadcastEvents].sort(
     (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
   );
 }
