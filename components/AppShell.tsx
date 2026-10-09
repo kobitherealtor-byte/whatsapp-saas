@@ -10,6 +10,7 @@ const navItems = [
   { href: '/scheduler', label: 'הודעות' },
   { href: '/publisher', label: 'פרסום לקבוצות' },
   { href: '/broadcasts', label: 'תפוצה' },
+  { href: '/inbox', label: 'Inbox' },
   { href: '/calendar', label: 'יומן' },
   { href: '/history', label: 'היסטוריה' },
   { href: '/settings', label: 'הגדרות' },
@@ -63,7 +64,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">{children}</main>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white lg:hidden">
-        <div className="grid grid-cols-7">
+        <div className="grid grid-cols-8">
           {navItems.map((item) => (
             <Link
               key={item.href}
