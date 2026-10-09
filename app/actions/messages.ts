@@ -92,7 +92,7 @@ export async function duplicateScheduledMessage(id: string) {
 
   const { data: source, error: sourceError } = await supabase
     .from('scheduled_messages')
-    .select('recipient_number, recipient_name, message_body, recurrence')
+    .select('recipient_number, recipient_name, message_body, recurrence, media_url')
     .eq('id', id)
     .eq('user_id', user.id)
     .single();
@@ -108,6 +108,7 @@ export async function duplicateScheduledMessage(id: string) {
     recipient_number: source.recipient_number,
     recipient_name: source.recipient_name,
     message_body: source.message_body,
+    media_url: source.media_url ?? null,
     scheduled_time: nextHour.toISOString(),
     timezone: 'Asia/Jerusalem',
     recurrence: source.recurrence,
