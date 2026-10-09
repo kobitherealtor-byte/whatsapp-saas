@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { wakeAutomationWorker } from '@/lib/automation-wake';
 import { assertAccountOperational, assertCanCreatePendingMessage } from '@/lib/account-limits';
 import { writeAuditEvent } from '@/lib/audit';
+import { parseIsraelLocalDateTimeInput } from '@/lib/timezone';
 
 async function requireUser() {
   const supabase = await createClient();
@@ -36,7 +37,7 @@ export async function createScheduledMessage(formData: {
   if (recipient.length < 9) throw new Error('מספר הטלפון אינו תקין.');
   if (!formData.body.trim()) throw new Error('תוכן ההודעה חסר.');
 
-  const scheduledTime = new Date(formData.scheduledAt);
+  const scheduledTime = parseIsraelLocalDateTimeInput(formData.scheduledAt);
   if (Number.isNaN(scheduledTime.getTime())) {
     throw new Error('תאריך או שעה אינם תקינים.');
   }
@@ -165,7 +166,7 @@ export async function updateScheduledMessage(
   if (recipient.length < 9) throw new Error('מספר הטלפון אינו תקין.');
   if (!formData.body.trim()) throw new Error('תוכן ההודעה חסר.');
 
-  const scheduledTime = new Date(formData.scheduledAt);
+  const scheduledTime = parseIsraelLocalDateTimeInput(formData.scheduledAt);
   if (Number.isNaN(scheduledTime.getTime())) {
     throw new Error('תאריך או שעה אינם תקינים.');
   }
@@ -180,7 +181,7 @@ export async function updateScheduledMessage(
 
   const { data: existing, error: existingError } = await supabase
     .from('scheduled_messages')
-    .select('status')
+    .select('status, recipient_number, recipient_name, message_body, media_url, recurrence')
     .eq('id', id)
     .eq('user_id', user.id)
     .single();
@@ -292,26 +293,55 @@ export async function sendScheduledMessageNow(id: string) {
     throw new Error('אפשר לשלוח עכשיו רק הודעה שממתינה.');
   }
 
-  const { error } = await supabase
-    .from('scheduled_messages')
-    .update({
-      scheduled_time: new Date(Date.now() + 15_000).toISOString(),
-      recurrence: 'none',
-      retry_count: 0,
-      error_text: null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .eq('status', 'pending');
+  const sendAt = new Date(Date.now() + 15_000).toISOString();
+  let sendNowEntityId = id;
 
-  if (error) throw new Error(error.message);
+  if (message.recurrence !== 'none') {
+    await assertCanCreatePendingMessage(user.id);
+
+    const { data: immediateCopy, error } = await supabase
+      .from('scheduled_messages')
+      .insert({
+        user_id: user.id,
+        recipient_number: message.recipient_number,
+        recipient_name: message.recipient_name,
+        message_body: message.message_body,
+        media_url: message.media_url ?? null,
+        scheduled_time: sendAt,
+        timezone: 'Asia/Jerusalem',
+        recurrence: 'none',
+        status: 'pending',
+      })
+      .select('id')
+      .single();
+
+    if (error) throw new Error(error.message);
+    sendNowEntityId = immediateCopy.id;
+  } else {
+    const { error } = await supabase
+      .from('scheduled_messages')
+      .update({
+        scheduled_time: sendAt,
+        retry_count: 0,
+        error_text: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .eq('status', 'pending');
+
+    if (error) throw new Error(error.message);
+  }
 
   await writeAuditEvent({
     userId: user.id,
     eventType: 'scheduled_message.send_now_requested',
     entityType: 'scheduled_message',
-    entityId: id,
+    entityId: sendNowEntityId,
+    metadata:
+      message.recurrence !== 'none'
+        ? { sourceRecurringMessageId: id }
+        : undefined,
   });
 
   revalidatePath('/dashboard');
