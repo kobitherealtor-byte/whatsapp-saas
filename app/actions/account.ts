@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { writeAuditEvent } from '@/lib/audit';
 
 export async function updateBusinessProfile(input: { businessName: string }) {
   const supabase = await createClient();
@@ -28,6 +29,13 @@ export async function updateBusinessProfile(input: { businessName: string }) {
     .eq('id', user.id);
 
   if (error) throw new Error(error.message);
+
+  await writeAuditEvent({
+    userId: user.id,
+    eventType: 'account.profile.updated',
+    entityType: 'profile',
+    entityId: user.id,
+  });
 
   revalidatePath('/account');
   revalidatePath('/dashboard');
