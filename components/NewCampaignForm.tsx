@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createGroupCampaign } from '@/app/actions/campaigns';
 import type { WhatsAppGroupRow } from '@/lib/data';
+import MediaUpload from '@/components/MediaUpload';
 
 const days = [
   { label: 'א׳', value: 0 },
@@ -76,11 +77,10 @@ export default function NewCampaignForm({ groups }: { groups: WhatsAppGroupRow[]
         <textarea value={message} onChange={(e) => setMessage(e.target.value)} required rows={5} placeholder="הטקסט שיישלח לכל הקבוצות..." className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-emerald-500" />
       </label>
 
-      <label className="block text-sm font-bold text-slate-700">
-        קישור למדיה
-        <input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} type="url" placeholder="https://.../image.jpg" className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-emerald-500" />
-        <span className="mt-1 block text-xs font-normal text-slate-400">אופציונלי — תמונה או קובץ עם קישור ציבורי.</span>
-      </label>
+      <div>
+        <div className="mb-2 text-sm font-bold text-slate-700">מדיה</div>
+        <MediaUpload value={mediaUrl} onChange={setMediaUrl} disabled={loading} />
+      </div>
 
       <div>
         <div className="mb-2 text-sm font-bold text-slate-700">קבוצות לפרסום</div>
