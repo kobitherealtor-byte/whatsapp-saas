@@ -29,6 +29,29 @@ export default async function Dashboard() {
           </div>
         </header>
 
+        {(!data.businessName || !isConnected || data.groups === 0) && (
+          <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-4">
+              <h2 className="text-lg font-extrabold">מתחילים בכמה צעדים פשוטים</h2>
+              <p className="text-sm text-slate-500">השלם את ההגדרות פעם אחת, ואחר כך העבודה היומיומית נשארת פשוטה.</p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <Link href="/account" className="rounded-xl border border-slate-200 p-4 hover:bg-slate-50">
+                <div className="text-xs font-bold text-slate-400">1</div>
+                <div className="mt-1 font-bold">{data.businessName ? '✓ פרטי העסק נשמרו' : 'הוסף שם עסק'}</div>
+              </Link>
+              <Link href="/settings" className="rounded-xl border border-slate-200 p-4 hover:bg-slate-50">
+                <div className="text-xs font-bold text-slate-400">2</div>
+                <div className="mt-1 font-bold">{isConnected ? '✓ WhatsApp מחובר' : 'חבר WhatsApp'}</div>
+              </Link>
+              <Link href="/groups" className="rounded-xl border border-slate-200 p-4 hover:bg-slate-50">
+                <div className="text-xs font-bold text-slate-400">3</div>
+                <div className="mt-1 font-bold">{data.groups > 0 ? `✓ ${data.groups} קבוצות זמינות` : 'סנכרן קבוצות'}</div>
+              </Link>
+            </div>
+          </section>
+        )}
+
         <section className={`mb-6 rounded-2xl border p-4 ${isConnected ? 'border-emerald-100 bg-emerald-50' : 'border-amber-100 bg-amber-50'}`}>
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
