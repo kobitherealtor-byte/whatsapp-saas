@@ -321,3 +321,53 @@ export async function rebootGreenApiInstance(input: {
 
   return true;
 }
+
+
+export async function getChatHistory(input: {
+  apiUrl: string;
+  idInstance: string;
+  apiTokenInstance: string;
+  chatId: string;
+  count?: number;
+}) {
+  const response = await fetch(
+    `${input.apiUrl.replace(/\/$/, '')}/waInstance${input.idInstance}/getChatHistory/${input.apiTokenInstance}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      body: JSON.stringify({
+        chatId: input.chatId,
+        count: Math.max(1, Math.min(input.count ?? 50, 100)),
+      }),
+    },
+  );
+
+  const raw = await response.text();
+  let data: unknown = [];
+
+  try {
+    data = raw ? JSON.parse(raw) : [];
+  } catch {
+    throw new Error('Failed to parse WhatsApp chat history.');
+  }
+
+  if (!response.ok || !Array.isArray(data)) {
+    throw new Error('Failed to load WhatsApp chat history.');
+  }
+
+  return data as Array<{
+    idMessage?: string;
+    timestamp?: number;
+    type?: string;
+    typeMessage?: string;
+    chatId?: string;
+    senderId?: string;
+    senderName?: string;
+    textMessage?: string;
+    extendedTextMessage?: { text?: string };
+    caption?: string;
+    downloadUrl?: string;
+    statusMessage?: string;
+  }>;
+}
