@@ -24,6 +24,7 @@ export async function createScheduledMessage(formData: {
   body: string;
   scheduledAt: string;
   recurrence: string;
+  mediaUrl?: string;
 }) {
   const { supabase, user } = await requireUser();
 
@@ -49,6 +50,7 @@ export async function createScheduledMessage(formData: {
     recipient_number: recipient,
     recipient_name: formData.name.trim() || null,
     message_body: formData.body.trim(),
+    media_url: formData.mediaUrl?.trim() || null,
     scheduled_time: scheduledTime.toISOString(),
     timezone: 'Asia/Jerusalem',
     recurrence: formData.recurrence,
@@ -185,5 +187,45 @@ export async function updateScheduledMessage(
   revalidatePath('/dashboard');
   revalidatePath('/scheduler');
   revalidatePath('/calendar');
+  await wakeAutomationWorker();
+}
+
+
+export async function retryScheduledMessage(id: string) {
+  const { supabase, user } = await requireUser();
+
+  const { data: message, error: messageError } = await supabase
+    .from('scheduled_messages')
+    .select('status')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single();
+
+  if (messageError || !message) throw new Error('ההודעה לא נמצאה.');
+  if (message.status !== 'failed') {
+    throw new Error('אפשר לנסות שוב רק הודעה שנכשלה.');
+  }
+
+  const { error } = await supabase
+    .from('scheduled_messages')
+    .update({
+      status: 'pending',
+      retry_count: 0,
+      error_text: null,
+      claim_token: null,
+      claimed_at: null,
+      scheduled_time: new Date(Date.now() + 60_000).toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .eq('status', 'failed');
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/dashboard');
+  revalidatePath('/scheduler');
+  revalidatePath('/calendar');
+  revalidatePath('/history');
   await wakeAutomationWorker();
 }
