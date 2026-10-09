@@ -103,3 +103,43 @@ export async function assertCampaignGroupLimit(userId: string, groupCount: numbe
 
   return limits;
 }
+
+
+export async function getAccountUsage(userId: string) {
+  const admin = createAdminClient();
+  const limits = await getAccountLimits(userId);
+
+  const [pendingResult, campaignsResult, sentResult] = await Promise.all([
+    admin
+      .from('scheduled_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .in('status', ['pending', 'processing']),
+    admin
+      .from('group_campaigns')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'active'),
+    admin
+      .from('send_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'sent')
+      .gte('created_at', limits.currentPeriodStart)
+      .lt('created_at', limits.currentPeriodEnd),
+  ]);
+
+  const firstError = [
+    pendingResult.error,
+    campaignsResult.error,
+    sentResult.error,
+  ].find(Boolean);
+
+  if (firstError) throw new Error(firstError.message);
+
+  return {
+    pendingMessages: pendingResult.count ?? 0,
+    activeCampaigns: campaignsResult.count ?? 0,
+    sentThisPeriod: sentResult.count ?? 0,
+  };
+}
