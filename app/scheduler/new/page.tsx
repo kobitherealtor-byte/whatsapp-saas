@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AppShell from '@/components/AppShell';
+import MediaUpload from '@/components/MediaUpload';
 import { createScheduledMessage } from '@/app/actions/messages';
 
 export default function NewScheduledMessage() {
@@ -108,18 +109,14 @@ export default function NewScheduledMessage() {
             />
           </label>
 
-          <label className="block text-sm font-bold text-slate-700">
-            קישור למדיה
-            <input
-              type="url"
+          <div>
+            <div className="mb-2 text-sm font-bold text-slate-700">מדיה</div>
+            <MediaUpload
               value={formData.mediaUrl}
-              onChange={(e) => setFormData({ ...formData, mediaUrl: e.target.value })}
-              placeholder="https://.../image.jpg"
-              className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-emerald-500"
+              onChange={(mediaUrl) => setFormData({ ...formData, mediaUrl })}
               disabled={loading}
             />
-            <span className="mt-1 block text-xs font-normal text-slate-400">אופציונלי — תמונה או קובץ עם קישור ציבורי.</span>
-          </label>
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="text-sm font-bold text-slate-700">
