@@ -23,6 +23,15 @@ type PersonalJob = {
   connection: Connection | null;
 };
 
+type BroadcastJob = {
+  id: string;
+  claimToken: string;
+  recipientNumber: string;
+  message: string;
+  mediaUrl: string | null;
+  connection: Connection | null;
+};
+
 type GroupJob = {
   id: string;
   claimToken: string;
@@ -106,6 +115,7 @@ export async function POST(request: Request) {
       personalLimit?: number;
       campaignLimit?: number;
       groupLimit?: number;
+      broadcastLimit?: number;
     };
 
     const personalClaim = await postJson<{ jobs: PersonalJob[] }>(
@@ -154,6 +164,55 @@ export async function POST(request: Request) {
         );
 
         personalFailed += 1;
+      }
+    }
+
+    const broadcastClaim = await postJson<{ jobs: BroadcastJob[] }>(
+      `${origin}/api/automation/broadcasts/claim`,
+      secret,
+      { limit: body.broadcastLimit ?? 10 },
+    );
+
+    let broadcastSent = 0;
+    let broadcastFailed = 0;
+
+    for (const job of broadcastClaim.jobs) {
+      try {
+        const idMessage = await sendJob({
+          chatId: normalizePersonalChatId(job.recipientNumber),
+          message: job.message,
+          mediaUrl: job.mediaUrl,
+          connection: job.connection,
+        });
+
+        await postJson(
+          `${origin}/api/automation/broadcasts/result`,
+          secret,
+          {
+            id: job.id,
+            claimToken: job.claimToken,
+            success: true,
+            externalMessageId: idMessage,
+          },
+        );
+
+        broadcastSent += 1;
+      } catch (sendError) {
+        await postJson(
+          `${origin}/api/automation/broadcasts/result`,
+          secret,
+          {
+            id: job.id,
+            claimToken: job.claimToken,
+            success: false,
+            error:
+              sendError instanceof Error
+                ? sendError.message
+                : 'broadcast_send_failed',
+          },
+        );
+
+        broadcastFailed += 1;
       }
     }
 
@@ -223,7 +282,7 @@ export async function POST(request: Request) {
           personal_failed: personalFailed,
           group_claimed: campaignClaim.jobs.length,
           group_sent: groupSent,
-          group_failed: groupFailed,
+          group_failed: groupFailed + broadcastFailed,
           duration_ms: durationMs,
           error_text: null,
         })
@@ -241,6 +300,11 @@ export async function POST(request: Request) {
         claimed: campaignClaim.jobs.length,
         sent: groupSent,
         failed: groupFailed,
+      },
+      broadcasts: {
+        claimed: broadcastClaim.jobs.length,
+        sent: broadcastSent,
+        failed: broadcastFailed,
       },
       nextRunAt,
       durationMs,
