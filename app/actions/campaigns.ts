@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { nextCampaignRun } from '@/lib/timezone';
 import { wakeAutomationWorker } from '@/lib/automation-wake';
-import { assertCanActivateCampaign, assertCampaignGroupLimit } from '@/lib/account-limits';
+import { assertAccountOperational, assertCanActivateCampaign, assertCampaignGroupLimit } from '@/lib/account-limits';
 
 async function requireUser() {
   const supabase = await createClient();
@@ -29,6 +29,7 @@ export async function createGroupCampaign(input: {
   mediaUrl?: string;
 }) {
   const { supabase, user } = await requireUser();
+  await assertAccountOperational(user.id);
   await assertCampaignGroupLimit(user.id, input.groupIds.length);
   await assertCanActivateCampaign(user.id);
 
@@ -126,6 +127,7 @@ export async function setCampaignStatus(
   const payload: Record<string, string | number | null> = { status };
 
   if (status === 'active') {
+    await assertAccountOperational(user.id);
     await assertCanActivateCampaign(user.id);
 
     const { data: campaign, error } = await supabase
