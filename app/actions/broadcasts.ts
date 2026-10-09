@@ -216,16 +216,23 @@ export async function retryBroadcastRecipient(id: string) {
 
   if (error) throw new Error(error.message);
 
+  const { data: campaignState } = await admin
+    .from('broadcast_campaigns')
+    .select('failed_count, status')
+    .eq('id', recipient.campaign_id)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
   await admin
     .from('broadcast_campaigns')
     .update({
-      status: 'active',
-      failed_count: 0,
+      status: campaignState?.status === 'completed' ? 'active' : campaignState?.status,
+      failed_count: Math.max(0, Number(campaignState?.failed_count ?? 0) - 1),
+      last_error: null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', recipient.campaign_id)
-    .eq('user_id', user.id)
-    .eq('status', 'completed');
+    .eq('user_id', user.id);
 
   await writeAuditEvent({
     userId: user.id,
