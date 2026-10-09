@@ -20,6 +20,7 @@ export default function NewCampaignForm({ groups }: { groups: WhatsAppGroupRow[]
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [name, setName] = useState('');
   const [message, setMessage] = useState('');
+  const [mediaUrl, setMediaUrl] = useState('');
   const [sendTime, setSendTime] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -50,6 +51,7 @@ export default function NewCampaignForm({ groups }: { groups: WhatsAppGroupRow[]
         startDate,
         endDate,
         skipHolidays,
+        mediaUrl,
       });
       router.push('/publisher');
       router.refresh();
@@ -72,6 +74,12 @@ export default function NewCampaignForm({ groups }: { groups: WhatsAppGroupRow[]
       <label className="block text-sm font-bold text-slate-700">
         תוכן ההודעה
         <textarea value={message} onChange={(e) => setMessage(e.target.value)} required rows={5} placeholder="הטקסט שיישלח לכל הקבוצות..." className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-emerald-500" />
+      </label>
+
+      <label className="block text-sm font-bold text-slate-700">
+        קישור למדיה
+        <input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} type="url" placeholder="https://.../image.jpg" className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-emerald-500" />
+        <span className="mt-1 block text-xs font-normal text-slate-400">אופציונלי — תמונה או קובץ עם קישור ציבורי.</span>
       </label>
 
       <div>
