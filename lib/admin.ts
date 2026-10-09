@@ -182,3 +182,113 @@ export async function getAdminDashboardData() {
     },
   };
 }
+
+
+export async function getAdminCustomerDetail(customerId: string) {
+  const { admin } = await requireAdmin();
+
+  const [{ data: authUserResult, error: authError }, { data: profile, error: profileError }] =
+    await Promise.all([
+      admin.auth.admin.getUserById(customerId),
+      admin
+        .from('profiles')
+        .select('id, business_name, created_at')
+        .eq('id', customerId)
+        .maybeSingle(),
+    ]);
+
+  if (authError) throw new Error(authError.message);
+  if (profileError) throw new Error(profileError.message);
+  if (!authUserResult.user) throw new Error('Customer not found');
+
+  const [
+    connectionResult,
+    limitsResult,
+    recentLogsResult,
+    recentAuditResult,
+    pendingResult,
+    groupsResult,
+    broadcastsResult,
+  ] = await Promise.all([
+    admin
+      .from('whatsapp_connections')
+      .select('status, phone_number, provider_state, last_checked_at, last_error, connected_at')
+      .eq('user_id', customerId)
+      .maybeSingle(),
+    admin
+      .from('account_limits')
+      .select('plan_code, billing_status, max_pending_messages, max_active_campaigns, max_groups_per_campaign, max_broadcast_recipients, monthly_send_limit, current_period_start, current_period_end')
+      .eq('user_id', customerId)
+      .maybeSingle(),
+    admin
+      .from('send_logs')
+      .select('id, kind, destination, status, detail, error_message, sent_at, created_at')
+      .eq('user_id', customerId)
+      .order('created_at', { ascending: false })
+      .limit(40),
+    admin
+      .from('audit_events')
+      .select('id, event_type, entity_type, entity_id, metadata, created_at')
+      .eq('user_id', customerId)
+      .order('created_at', { ascending: false })
+      .limit(40),
+    admin
+      .from('scheduled_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', customerId)
+      .in('status', ['pending', 'processing']),
+    admin
+      .from('group_campaigns')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', customerId)
+      .eq('status', 'active'),
+    admin
+      .from('broadcast_campaigns')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', customerId)
+      .eq('status', 'active'),
+  ]);
+
+  for (const result of [
+    connectionResult,
+    limitsResult,
+    recentLogsResult,
+    recentAuditResult,
+    pendingResult,
+    groupsResult,
+    broadcastsResult,
+  ]) {
+    if (result.error) throw new Error(result.error.message);
+  }
+
+  const limits = limitsResult.data;
+
+  return {
+    customer: {
+      id: customerId,
+      email: authUserResult.user.email ?? 'ללא אימייל',
+      businessName: profile?.business_name ?? null,
+      createdAt: authUserResult.user.created_at,
+      lastSignInAt: authUserResult.user.last_sign_in_at ?? null,
+    },
+    connection: connectionResult.data,
+    limits: {
+      planCode: limits?.plan_code ?? 'beta',
+      billingStatus: limits?.billing_status ?? 'beta',
+      maxPendingMessages: Number(limits?.max_pending_messages ?? 500),
+      maxActiveCampaigns: Number(limits?.max_active_campaigns ?? 50),
+      maxGroupsPerCampaign: Number(limits?.max_groups_per_campaign ?? 100),
+      maxBroadcastRecipients: Number(limits?.max_broadcast_recipients ?? 2000),
+      monthlySendLimit: Number(limits?.monthly_send_limit ?? 10000),
+      currentPeriodStart: limits?.current_period_start ?? null,
+      currentPeriodEnd: limits?.current_period_end ?? null,
+    },
+    usage: {
+      pendingMessages: pendingResult.count ?? 0,
+      activeGroupCampaigns: groupsResult.count ?? 0,
+      activeBroadcasts: broadcastsResult.count ?? 0,
+    },
+    recentLogs: recentLogsResult.data ?? [],
+    recentAudit: recentAuditResult.data ?? [],
+  };
+}
