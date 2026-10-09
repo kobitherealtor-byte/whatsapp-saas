@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { wakeAutomationWorker } from '@/lib/automation-wake';
 import { assertAccountOperational, assertCanCreatePendingMessage } from '@/lib/account-limits';
+import { writeAuditEvent } from '@/lib/audit';
 
 async function requireUser() {
   const supabase = await createClient();
@@ -48,7 +49,7 @@ export async function createScheduledMessage(formData: {
     throw new Error('סוג החזרה אינו תקין.');
   }
 
-  const { error } = await supabase.from('scheduled_messages').insert({
+  const { data: createdMessage, error } = await supabase.from('scheduled_messages').insert({
     user_id: user.id,
     recipient_number: recipient,
     recipient_name: formData.name.trim() || null,
@@ -58,9 +59,16 @@ export async function createScheduledMessage(formData: {
     timezone: 'Asia/Jerusalem',
     recurrence: formData.recurrence,
     status: 'pending',
-  });
+  }).select('id').single();
 
   if (error) throw new Error(error.message);
+
+  await writeAuditEvent({
+    userId: user.id,
+    eventType: 'scheduled_message.created',
+    entityType: 'scheduled_message',
+    entityId: createdMessage.id,
+  });
 
   revalidatePath('/dashboard');
   revalidatePath('/scheduler');
@@ -79,6 +87,13 @@ export async function cancelScheduledMessage(id: string) {
     .eq('status', 'pending');
 
   if (error) throw new Error(error.message);
+
+  await writeAuditEvent({
+    userId: user.id,
+    eventType: 'scheduled_message.cancelled',
+    entityType: 'scheduled_message',
+    entityId: id,
+  });
 
   revalidatePath('/dashboard');
   revalidatePath('/scheduler');
@@ -103,7 +118,7 @@ export async function duplicateScheduledMessage(id: string) {
 
   const nextHour = new Date(Date.now() + 60 * 60 * 1000);
 
-  const { error } = await supabase.from('scheduled_messages').insert({
+  const { data: duplicatedMessage, error } = await supabase.from('scheduled_messages').insert({
     user_id: user.id,
     recipient_number: source.recipient_number,
     recipient_name: source.recipient_name,
@@ -113,9 +128,17 @@ export async function duplicateScheduledMessage(id: string) {
     timezone: 'Asia/Jerusalem',
     recurrence: source.recurrence,
     status: 'pending',
-  });
+  }).select('id').single();
 
   if (error) throw new Error(error.message);
+
+  await writeAuditEvent({
+    userId: user.id,
+    eventType: 'scheduled_message.duplicated',
+    entityType: 'scheduled_message',
+    entityId: duplicatedMessage.id,
+    metadata: { sourceId: id },
+  });
 
   revalidatePath('/dashboard');
   revalidatePath('/scheduler');
@@ -189,6 +212,13 @@ export async function updateScheduledMessage(
 
   if (error) throw new Error(error.message);
 
+  await writeAuditEvent({
+    userId: user.id,
+    eventType: 'scheduled_message.updated',
+    entityType: 'scheduled_message',
+    entityId: id,
+  });
+
   revalidatePath('/dashboard');
   revalidatePath('/scheduler');
   revalidatePath('/calendar');
@@ -230,6 +260,13 @@ export async function retryScheduledMessage(id: string) {
 
   if (error) throw new Error(error.message);
 
+  await writeAuditEvent({
+    userId: user.id,
+    eventType: 'scheduled_message.retry_requested',
+    entityType: 'scheduled_message',
+    entityId: id,
+  });
+
   revalidatePath('/dashboard');
   revalidatePath('/scheduler');
   revalidatePath('/calendar');
@@ -268,6 +305,13 @@ export async function sendScheduledMessageNow(id: string) {
     .eq('status', 'pending');
 
   if (error) throw new Error(error.message);
+
+  await writeAuditEvent({
+    userId: user.id,
+    eventType: 'scheduled_message.send_now_requested',
+    entityType: 'scheduled_message',
+    entityId: id,
+  });
 
   revalidatePath('/dashboard');
   revalidatePath('/scheduler');
