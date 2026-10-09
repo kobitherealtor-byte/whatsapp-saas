@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { rebootGreenApiInstance } from '@/lib/green-api';
 import { assertUserRateLimit } from '@/lib/rate-limit';
+import { safeUserApiError } from '@/lib/api-error';
 
 export async function POST() {
   try {
@@ -52,12 +53,7 @@ export async function POST() {
 
     return NextResponse.json({ ok: true, status: 'creating' });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'unknown_error';
-    const status =
-      message === 'unauthorized' ? 401 : message === 'rate_limited' ? 429 : 500;
-    return NextResponse.json(
-      { error: message === 'rate_limited' ? 'יותר מדי ניסיונות. נסה שוב בעוד כמה דקות.' : message },
-      { status },
-    );
+    const safe = safeUserApiError(error, 'לא הצלחנו לאתחל את חיבור ה-WhatsApp.');
+    return NextResponse.json({ error: safe.message }, { status: safe.status });
   }
 }
