@@ -90,7 +90,8 @@ export async function getWhatsAppGroups() {
 }
 
 export async function getDashboardData() {
-  const { supabase } = await getAuthedClient();
+  const { supabase, user } = await getAuthedClient();
+  const admin = createAdminClient();
   const nowIso = new Date().toISOString();
   const next24hIso = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
@@ -133,9 +134,10 @@ export async function getDashboardData() {
       .from('scheduled_messages')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'failed'),
-    supabase
+    admin
       .from('campaign_dispatches')
       .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
       .eq('status', 'failed'),
     supabase
       .from('profiles')
