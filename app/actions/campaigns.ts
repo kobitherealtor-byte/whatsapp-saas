@@ -122,7 +122,7 @@ export async function setCampaignStatus(
   if (status === 'active') {
     const { data: campaign, error } = await supabase
       .from('group_campaigns')
-      .select('days_of_week, send_time')
+      .select('days_of_week, send_time, start_date, end_date')
       .eq('id', id)
       .eq('user_id', user.id)
       .single();
@@ -131,6 +131,9 @@ export async function setCampaignStatus(
     const nextRun = nextCampaignRun(
       campaign.days_of_week ?? [],
       campaign.send_time,
+      new Date(),
+      campaign.start_date,
+      campaign.end_date,
     );
     if (!nextRun) throw new Error('אין מועד פרסום עתידי לקמפיין.');
     payload.next_run_at = nextRun;
