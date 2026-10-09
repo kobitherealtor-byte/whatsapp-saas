@@ -80,15 +80,21 @@ export async function assertCanCreatePendingMessage(userId: string) {
   return limits;
 }
 
-export async function assertCanActivateCampaign(userId: string) {
+export async function assertCanActivateCampaign(userId: string, excludeCampaignId?: string) {
   const admin = createAdminClient();
   const limits = await getAccountLimits(userId);
 
-  const { count, error } = await admin
+  let query = admin
     .from('group_campaigns')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
     .eq('status', 'active');
+
+  if (excludeCampaignId) {
+    query = query.neq('id', excludeCampaignId);
+  }
+
+  const { count, error } = await query;
 
   if (error) throw new Error(error.message);
 
