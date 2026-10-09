@@ -143,3 +143,18 @@ export async function getAccountUsage(userId: string) {
     sentThisPeriod: sentResult.count ?? 0,
   };
 }
+
+
+export async function assertAccountOperational(userId: string) {
+  const limits = await getAccountLimits(userId);
+
+  if (!['beta', 'trialing', 'active'].includes(limits.billingStatus)) {
+    throw new Error(
+      limits.billingStatus === 'past_due'
+        ? 'התשלום בחשבון דורש טיפול לפני שאפשר להמשיך לשלוח.'
+        : 'התוכנית בחשבון אינה פעילה כרגע.',
+    );
+  }
+
+  return limits;
+}
