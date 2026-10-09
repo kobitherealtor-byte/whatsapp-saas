@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createPartnerInstance } from '@/lib/green-api';
+import {
+  createPartnerInstance,
+  getInstanceState,
+  GreenApiInstanceNotFoundError,
+} from '@/lib/green-api';
 import { assertUserRateLimit } from '@/lib/rate-limit';
 import { safeUserApiError } from '@/lib/api-error';
 
@@ -27,25 +31,54 @@ export async function POST() {
 
     const { data: existingCredential, error: credentialError } = await admin
       .from('green_api_credentials')
-      .select('id_instance')
+      .select('id_instance, api_token_instance, api_url')
       .eq('user_id', user.id)
       .maybeSingle();
 
     if (credentialError) throw credentialError;
 
     if (existingCredential) {
-      const { data: connection } = await supabase
-        .from('whatsapp_connections')
-        .select('status, phone_number, instance_id')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      try {
+        await getInstanceState({
+          apiUrl: existingCredential.api_url,
+          idInstance: existingCredential.id_instance,
+          apiTokenInstance: existingCredential.api_token_instance,
+        });
 
-      return NextResponse.json({
-        created: false,
-        status: connection?.status ?? 'creating',
-        phoneNumber: connection?.phone_number ?? null,
-        instanceId: connection?.instance_id ?? existingCredential.id_instance,
-      });
+        const { data: connection } = await supabase
+          .from('whatsapp_connections')
+          .select('status, phone_number, instance_id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        return NextResponse.json({
+          created: false,
+          status: connection?.status ?? 'creating',
+          phoneNumber: connection?.phone_number ?? null,
+          instanceId: connection?.instance_id ?? existingCredential.id_instance,
+        });
+      } catch (stateError) {
+        if (!(stateError instanceof GreenApiInstanceNotFoundError)) {
+          throw stateError;
+        }
+
+        await admin
+          .from('green_api_credentials')
+          .delete()
+          .eq('user_id', user.id);
+
+        await admin
+          .from('whatsapp_connections')
+          .update({
+            status: 'disconnected',
+            instance_id: null,
+            phone_number: null,
+            connected_at: null,
+            provider_state: null,
+            last_error: 'Provider instance was removed and will be recreated.',
+          })
+          .eq('user_id', user.id);
+      }
     }
 
     const instance = await createPartnerInstance(
