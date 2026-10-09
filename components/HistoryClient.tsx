@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { retryScheduledMessage } from '@/app/actions/messages';
+import { retryCampaignDispatch } from '@/app/actions/dispatches';
 import type { DeliveryHistoryItem } from '@/lib/data';
 
 const statusLabels = {
@@ -30,7 +31,7 @@ export default function HistoryClient({ items }: { items: DeliveryHistoryItem[] 
     [filter, items],
   );
 
-  const retry = async (id: string) => {
+  const retryMessage = async (id: string) => {
     setBusyId(id);
     setError('');
     try {
@@ -106,7 +107,32 @@ export default function HistoryClient({ items }: { items: DeliveryHistoryItem[] 
                   <button
                     type="button"
                     disabled={busyId === item.retryMessageId}
-                    onClick={() => void retry(item.retryMessageId!)}
+                    onClick={() => void retryMessage(item.retryMessageId!)}
+                    className="text-xs font-bold text-emerald-700 hover:text-emerald-900 disabled:opacity-50"
+                  >
+                    נסה שוב
+                  </button>
+                )}
+                {item.retryDispatchId && (
+                  <button
+                    type="button"
+                    disabled={busyId === item.retryDispatchId}
+                    onClick={async () => {
+                      setBusyId(item.retryDispatchId);
+                      setError('');
+                      try {
+                        await retryCampaignDispatch(item.retryDispatchId!);
+                        router.refresh();
+                      } catch (retryError) {
+                        setError(
+                          retryError instanceof Error
+                            ? retryError.message
+                            : 'הניסיון החוזר נכשל.',
+                        );
+                      } finally {
+                        setBusyId(null);
+                      }
+                    }}
                     className="text-xs font-bold text-emerald-700 hover:text-emerald-900 disabled:opacity-50"
                   >
                     נסה שוב
