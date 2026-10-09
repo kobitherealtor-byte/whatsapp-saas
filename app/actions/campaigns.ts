@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { nextCampaignRun } from '@/lib/timezone';
 import { wakeAutomationWorker } from '@/lib/automation-wake';
 import { assertAccountOperational, assertCanActivateCampaign, assertCampaignGroupLimit } from '@/lib/account-limits';
+import { writeAuditEvent } from '@/lib/audit';
 
 async function requireUser() {
   const supabase = await createClient();
@@ -112,6 +113,14 @@ export async function createGroupCampaign(input: {
     throw new Error(relationError.message);
   }
 
+  await writeAuditEvent({
+    userId: user.id,
+    eventType: 'group_campaign.created',
+    entityType: 'group_campaign',
+    entityId: campaign.id,
+    metadata: { groups: input.groupIds.length },
+  });
+
   revalidatePath('/publisher');
   revalidatePath('/dashboard');
   revalidatePath('/calendar');
@@ -162,6 +171,13 @@ export async function setCampaignStatus(
     .eq('user_id', user.id);
 
   if (error) throw new Error(error.message);
+
+  await writeAuditEvent({
+    userId: user.id,
+    eventType: `group_campaign.${status}`,
+    entityType: 'group_campaign',
+    entityId: id,
+  });
 
   revalidatePath('/publisher');
   revalidatePath('/dashboard');
@@ -274,6 +290,14 @@ export async function updateGroupCampaign(
     })));
 
   if (relationError) throw new Error(relationError.message);
+
+  await writeAuditEvent({
+    userId: user.id,
+    eventType: 'group_campaign.updated',
+    entityType: 'group_campaign',
+    entityId: id,
+    metadata: { groups: input.groupIds.length },
+  });
 
   revalidatePath('/publisher');
   revalidatePath('/dashboard');
