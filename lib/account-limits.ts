@@ -8,6 +8,7 @@ export type AccountLimits = {
   maxPendingMessages: number;
   maxActiveCampaigns: number;
   maxGroupsPerCampaign: number;
+  maxBroadcastRecipients: number;
   monthlySendLimit: number;
   currentPeriodStart: string;
   currentPeriodEnd: string;
@@ -20,7 +21,7 @@ export async function getAccountLimits(userId: string): Promise<AccountLimits> {
 
   const { data: existing, error: existingError } = await admin
     .from('account_limits')
-    .select('plan_code, billing_status, max_pending_messages, max_active_campaigns, max_groups_per_campaign, monthly_send_limit, current_period_start, current_period_end')
+    .select('plan_code, billing_status, max_pending_messages, max_active_campaigns, max_groups_per_campaign, max_broadcast_recipients, monthly_send_limit, current_period_start, current_period_end')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -40,6 +41,7 @@ export async function getAccountLimits(userId: string): Promise<AccountLimits> {
       maxPendingMessages: created.max_pending_messages,
       maxActiveCampaigns: created.max_active_campaigns,
       maxGroupsPerCampaign: created.max_groups_per_campaign,
+      maxBroadcastRecipients: created.max_broadcast_recipients,
       monthlySendLimit: created.monthly_send_limit,
       currentPeriodStart: created.current_period_start,
       currentPeriodEnd: created.current_period_end,
@@ -52,6 +54,7 @@ export async function getAccountLimits(userId: string): Promise<AccountLimits> {
     maxPendingMessages: existing.max_pending_messages,
     maxActiveCampaigns: existing.max_active_campaigns,
     maxGroupsPerCampaign: existing.max_groups_per_campaign,
+    maxBroadcastRecipients: existing.max_broadcast_recipients,
     monthlySendLimit: existing.monthly_send_limit,
     currentPeriodStart: existing.current_period_start,
     currentPeriodEnd: existing.current_period_end,
