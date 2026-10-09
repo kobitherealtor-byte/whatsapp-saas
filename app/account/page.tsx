@@ -1,7 +1,7 @@
 import AppShell from '@/components/AppShell';
 import AccountForm from '@/components/AccountForm';
 import { createClient } from '@/lib/supabase/server';
-import { getAccountLimits } from '@/lib/account-limits';
+import { getAccountLimits, getAccountUsage } from '@/lib/account-limits';
 
 export default async function AccountPage() {
   const supabase = await createClient();
@@ -11,13 +11,14 @@ export default async function AccountPage() {
 
   if (!user) return null;
 
-  const [{ data: profile }, limits] = await Promise.all([
+  const [{ data: profile }, limits, usage] = await Promise.all([
     supabase
     .from('profiles')
     .select('business_name')
     .eq('id', user.id)
     .maybeSingle(),
     getAccountLimits(user.id),
+    getAccountUsage(user.id),
   ]);
 
   return (
@@ -45,16 +46,16 @@ export default async function AccountPage() {
 
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl bg-slate-50 p-4">
-              <div className="text-2xl font-black">{limits.maxPendingMessages}</div>
+              <div className="text-2xl font-black">{usage.pendingMessages} / {limits.maxPendingMessages}</div>
               <div className="mt-1 text-xs font-semibold text-slate-500">הודעות פעילות</div>
             </div>
             <div className="rounded-xl bg-slate-50 p-4">
-              <div className="text-2xl font-black">{limits.maxActiveCampaigns}</div>
+              <div className="text-2xl font-black">{usage.activeCampaigns} / {limits.maxActiveCampaigns}</div>
               <div className="mt-1 text-xs font-semibold text-slate-500">קמפיינים פעילים</div>
             </div>
             <div className="rounded-xl bg-slate-50 p-4">
-              <div className="text-2xl font-black">{limits.maxGroupsPerCampaign}</div>
-              <div className="mt-1 text-xs font-semibold text-slate-500">קבוצות לקמפיין</div>
+              <div className="text-2xl font-black">{usage.sentThisPeriod} / {limits.monthlySendLimit}</div>
+              <div className="mt-1 text-xs font-semibold text-slate-500">שליחות בתקופה</div>
             </div>
           </div>
 
