@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getInstanceState, getWaSettings } from '@/lib/green-api';
+import { assertUserRateLimit } from '@/lib/rate-limit';
 import { wakeAutomationWorker } from '@/lib/automation-wake';
 
 function mapState(state: string | null) {
@@ -22,6 +23,13 @@ export async function GET() {
     if (!user) {
       return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
     }
+
+    await assertUserRateLimit({
+      userId: user.id,
+      bucket: 'whatsapp-status',
+      limit: 40,
+      windowSeconds: 60,
+    });
 
     const admin = createAdminClient();
 
@@ -70,6 +78,8 @@ export async function GET() {
           status === 'connected'
             ? existingConnection?.connected_at ?? new Date().toISOString()
             : null,
+        provider_state: state,
+        last_checked_at: new Date().toISOString(),
         last_error: status === 'error' ? state : null,
       })
       .eq('user_id', user.id);
@@ -88,6 +98,10 @@ export async function GET() {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'unknown_error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    const status = message === 'rate_limited' ? 429 : 500;
+    return NextResponse.json(
+      { error: message === 'rate_limited' ? 'יותר מדי בקשות. נסה שוב בעוד רגע.' : message },
+      { status },
+    );
   }
 }
