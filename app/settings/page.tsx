@@ -207,11 +207,14 @@ export default function SettingsPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-3xl pb-20 lg:pb-0">
-        <div className="mb-6">
-          <h1 className="text-3xl font-black">חיבור WhatsApp</h1>
-          <p className="mt-1 text-slate-500">
-            חיבור פשוט דרך QR — בלי מפתחות, טוקנים או מסכים טכניים.
-          </p>
+        <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+          <div>
+            <h1 className="text-3xl font-black">חיבור WhatsApp</h1>
+            <p className="mt-1 text-slate-500">
+              חיבור פשוט דרך QR — בלי מפתחות, טוקנים או מסכים טכניים.
+            </p>
+          </div>
+          <a href="/account" className="text-sm font-bold text-emerald-700 hover:underline">החשבון שלי</a>
         </div>
 
         {error && (
