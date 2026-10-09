@@ -1,6 +1,7 @@
 import AppShell from '@/components/AppShell';
 import AccountForm from '@/components/AccountForm';
 import { createClient } from '@/lib/supabase/server';
+import { getAccountLimits } from '@/lib/account-limits';
 
 export default async function AccountPage() {
   const supabase = await createClient();
@@ -10,11 +11,14 @@ export default async function AccountPage() {
 
   if (!user) return null;
 
-  const { data: profile } = await supabase
+  const [{ data: profile }, limits] = await Promise.all([
+    supabase
     .from('profiles')
     .select('business_name')
     .eq('id', user.id)
-    .maybeSingle();
+    .maybeSingle(),
+    getAccountLimits(user.id),
+  ]);
 
   return (
     <AppShell>
@@ -27,6 +31,37 @@ export default async function AccountPage() {
           email={user.email ?? ''}
           businessName={profile?.business_name ?? ''}
         />
+
+        <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-slate-500">תוכנית נוכחית</div>
+              <div className="mt-1 text-xl font-black">{limits.planCode === 'beta' ? 'Beta' : limits.planCode}</div>
+            </div>
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">
+              {limits.billingStatus === 'beta' ? 'גישה מלאה לבטא' : limits.billingStatus}
+            </span>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl bg-slate-50 p-4">
+              <div className="text-2xl font-black">{limits.maxPendingMessages}</div>
+              <div className="mt-1 text-xs font-semibold text-slate-500">הודעות פעילות</div>
+            </div>
+            <div className="rounded-xl bg-slate-50 p-4">
+              <div className="text-2xl font-black">{limits.maxActiveCampaigns}</div>
+              <div className="mt-1 text-xs font-semibold text-slate-500">קמפיינים פעילים</div>
+            </div>
+            <div className="rounded-xl bg-slate-50 p-4">
+              <div className="text-2xl font-black">{limits.maxGroupsPerCampaign}</div>
+              <div className="mt-1 text-xs font-semibold text-slate-500">קבוצות לקמפיין</div>
+            </div>
+          </div>
+
+          <p className="mt-4 text-xs leading-5 text-slate-400">
+            התמחור הסופי עדיין לא הופעל. שכבת המגבלות כבר מוכנה כדי שנוכל לחבר מערכת חיוב בלי לשנות את מנגנון השליחה.
+          </p>
+        </section>
       </div>
     </AppShell>
   );
