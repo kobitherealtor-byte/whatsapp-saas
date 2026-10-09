@@ -80,6 +80,7 @@ export async function getWhatsAppGroups() {
     .from('whatsapp_groups')
     .select('id, chat_id, name, participant_count')
     .eq('is_active', true)
+    .eq('user_enabled', true)
     .order('name');
 
   if (error) throw new Error(error.message);
@@ -334,4 +335,23 @@ export async function getDeliveryHistory() {
   return [...personal, ...group]
     .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
     .slice(0, 200);
+}
+
+
+export async function getWhatsAppGroupsForManagement() {
+  const { supabase } = await getAuthedClient();
+
+  const { data, error } = await supabase
+    .from('whatsapp_groups')
+    .select('id, chat_id, name, participant_count, is_active, user_enabled, synced_at')
+    .order('is_active', { ascending: false })
+    .order('name');
+
+  if (error) throw new Error(error.message);
+
+  return (data ?? []) as Array<WhatsAppGroupRow & {
+    is_active: boolean;
+    user_enabled: boolean;
+    synced_at: string | null;
+  }>;
 }
