@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getInstanceState, getWaSettings } from '@/lib/green-api';
+import { wakeAutomationWorker } from '@/lib/automation-wake';
 
 function mapState(state: string | null) {
   if (!state) return 'creating';
@@ -56,7 +57,7 @@ export async function GET() {
 
     const { data: existingConnection } = await admin
       .from('whatsapp_connections')
-      .select('connected_at')
+      .select('connected_at, status')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -72,6 +73,13 @@ export async function GET() {
         last_error: status === 'error' ? state : null,
       })
       .eq('user_id', user.id);
+
+    if (
+      status === 'connected' &&
+      existingConnection?.status !== 'connected'
+    ) {
+      await wakeAutomationWorker();
+    }
 
     return NextResponse.json({
       status,
