@@ -28,7 +28,7 @@ export default async function SystemStatusPage() {
           <div>
             <p className="text-sm font-semibold text-emerald-700">System Health</p>
             <h1 className="mt-1 text-3xl font-black">מצב מערכת השליחות</h1>
-            <p className="mt-2 text-slate-500">בדיקה מהירה של מנוע האוטומציה והרצות האחרונות.</p>
+            <p className="mt-2 text-slate-500">מצב השירות ופעילות השליחה של החשבון שלך, בלי לחשוף מידע של לקוחות אחרים.</p>
           </div>
           <Link href="/dashboard" className="text-sm font-bold text-emerald-700 hover:underline">חזרה ללוח הבקרה</Link>
         </header>
@@ -44,19 +44,14 @@ export default async function SystemStatusPage() {
           <div className="mt-2 text-sm">
             הרצה אחרונה: {formatDate(health.lastRunAt)}
           </div>
-          {health.lastError && (
-            <div className="mt-3 rounded-xl bg-white/60 p-3 text-sm font-semibold">
-              {health.lastError}
-            </div>
-          )}
+
         </section>
 
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="grid gap-4 sm:grid-cols-3">
           {[
-            [health.runs24h, 'הרצות ב-24 שעות'],
+            [health.activity24h, 'פעולות שליחה בחשבון שלך'],
             [health.sent24h, 'שליחות הצליחו'],
             [health.failed24h, 'שליחות נכשלו'],
-            [health.failures24h, 'הרצות מערכת שנכשלו'],
           ].map(([value, label]) => (
             <div key={label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="text-3xl font-black">{value}</div>
