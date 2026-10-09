@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { writeAuditEvent } from '@/lib/audit';
 
 async function requireUser() {
   const supabase = await createClient();
@@ -27,6 +28,13 @@ export async function setWhatsAppGroupEnabled(id: string, enabled: boolean) {
     .eq('user_id', user.id);
 
   if (error) throw new Error(error.message);
+
+  await writeAuditEvent({
+    userId: user.id,
+    eventType: enabled ? 'whatsapp_group.enabled' : 'whatsapp_group.disabled',
+    entityType: 'whatsapp_group',
+    entityId: id,
+  });
 
   revalidatePath('/groups');
   revalidatePath('/publisher');
