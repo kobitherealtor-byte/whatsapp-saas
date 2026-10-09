@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { updateScheduledMessage } from '@/app/actions/messages';
+import MediaUpload from '@/components/MediaUpload';
 
 function localParts(value: string) {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -107,11 +108,14 @@ export default function EditScheduledMessageForm({
         <textarea rows={5} required value={formData.body} onChange={(e) => setFormData({ ...formData, body: e.target.value })} className="mt-2 w-full resize-y rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-emerald-500" />
       </label>
 
-      <label className="block text-sm font-bold text-slate-700">
-        קישור למדיה
-        <input value={formData.mediaUrl} onChange={(e) => setFormData({ ...formData, mediaUrl: e.target.value })} placeholder="https://.../image.jpg" className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-emerald-500" />
-        <span className="mt-1 block text-xs font-normal text-slate-400">אופציונלי. בהמשך נוסיף העלאת קובץ ישירה.</span>
-      </label>
+      <div>
+        <div className="mb-2 text-sm font-bold text-slate-700">מדיה</div>
+        <MediaUpload
+          value={formData.mediaUrl}
+          onChange={(mediaUrl) => setFormData({ ...formData, mediaUrl })}
+          disabled={loading}
+        />
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="text-sm font-bold text-slate-700">
