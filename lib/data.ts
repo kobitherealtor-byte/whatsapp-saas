@@ -213,3 +213,37 @@ export async function getCalendarEvents() {
     (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
   );
 }
+
+
+export async function getScheduledMessageById(id: string) {
+  const { supabase } = await getAuthedClient();
+
+  const { data, error } = await supabase
+    .from('scheduled_messages')
+    .select('id, recipient_name, recipient_number, message_body, scheduled_time, status, recurrence, media_url')
+    .eq('id', id)
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data as ScheduledMessageRow & {
+    recurrence: 'none' | 'daily' | 'weekly' | 'monthly';
+    media_url: string | null;
+  };
+}
+
+export async function getCampaignById(id: string) {
+  const { supabase } = await getAuthedClient();
+
+  const { data, error } = await supabase
+    .from('group_campaigns')
+    .select('id, name, message_body, media_url, days_of_week, send_time, start_date, end_date, skip_holidays, status, next_run_at, campaign_groups(group_id)')
+    .eq('id', id)
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  return data as CampaignRow & {
+    media_url: string | null;
+    campaign_groups: Array<{ group_id: string }>;
+  };
+}
