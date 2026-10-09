@@ -229,7 +229,6 @@ export async function getCalendarEvents() {
 
   if (messagesResult.error) throw new Error(messagesResult.error.message);
   if (campaignsResult.error) throw new Error(campaignsResult.error.message);
-  if (broadcastCampaignsResult.error) throw new Error(broadcastCampaignsResult.error.message);
   if (broadcastsResult.error) throw new Error(broadcastsResult.error.message);
 
   const messageEvents: CalendarEvent[] = (messagesResult.data ?? []).map((item) => ({
