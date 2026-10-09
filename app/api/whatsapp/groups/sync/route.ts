@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getChats } from '@/lib/green-api';
 import { assertUserRateLimit } from '@/lib/rate-limit';
+import { safeUserApiError } from '@/lib/api-error';
 
 export async function POST() {
   try {
@@ -94,11 +95,7 @@ export async function POST() {
       })),
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'unknown_error';
-    const status = message === 'rate_limited' ? 429 : 500;
-    return NextResponse.json(
-      { error: message === 'rate_limited' ? 'יותר מדי בקשות. נסה שוב בעוד רגע.' : message },
-      { status },
-    );
+    const safe = safeUserApiError(error, 'לא הצלחנו לסנכרן את קבוצות ה-WhatsApp.');
+    return NextResponse.json({ error: safe.message }, { status: safe.status });
   }
 }
