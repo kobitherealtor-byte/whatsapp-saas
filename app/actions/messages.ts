@@ -103,6 +103,7 @@ export async function cancelScheduledMessage(id: string) {
 
 export async function duplicateScheduledMessage(id: string) {
   const { supabase, user } = await requireUser();
+  await assertAccountOperational(user.id);
   await assertCanCreatePendingMessage(user.id);
 
   const { data: source, error: sourceError } = await supabase
