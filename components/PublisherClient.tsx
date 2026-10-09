@@ -20,9 +20,18 @@ function formatNextRun(value: string | null) {
 export default function PublisherClient({
   campaigns,
   groups,
+  deliveryStats,
 }: {
   campaigns: CampaignRow[];
   groups: WhatsAppGroupRow[];
+  deliveryStats: Array<{
+    campaignId: string;
+    sent: number;
+    failed: number;
+    pending: number;
+    processing: number;
+    skipped: number;
+  }>;
 }) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -66,6 +75,7 @@ export default function PublisherClient({
           <p className="mt-1 text-slate-500">קמפיינים קבועים לקבוצות WhatsApp לפי ימים ושעות.</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link href="/holiday-guard" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-bold text-slate-700 hover:bg-slate-50">Holiday Guard</Link>
           <Link href="/groups" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-bold text-slate-700 hover:bg-slate-50">ניהול קבוצות</Link>
           <Link href="/publisher/new" className="rounded-xl bg-slate-900 px-5 py-3 text-center text-sm font-bold text-white hover:bg-slate-800">+ קמפיין חדש</Link>
         </div>
@@ -94,6 +104,7 @@ export default function PublisherClient({
         <div className="divide-y divide-slate-100">
           {campaigns.map((campaign) => {
             const groupCount = campaign.campaign_groups?.length ?? 0;
+            const stats = deliveryStats.find((item) => item.campaignId === campaign.id);
             const schedule = campaign.days_of_week.length
               ? `${campaign.days_of_week.map((day) => dayLabels[day] ?? day).join(', ')} · ${campaign.send_time.slice(0, 5)}`
               : `ללא ימים · ${campaign.send_time.slice(0, 5)}`;
@@ -103,6 +114,13 @@ export default function PublisherClient({
                 <div>
                   <div className="font-bold">{campaign.name}</div>
                   <div className="mt-1 truncate text-xs text-slate-400">{campaign.message_body}</div>
+                  {stats && (
+                    <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-bold">
+                      <span className="text-emerald-700">נשלחו {stats.sent}</span>
+                      {stats.failed > 0 && <span className="text-red-600">נכשלו {stats.failed}</span>}
+                      {(stats.pending + stats.processing) > 0 && <span className="text-amber-700">ממתינות {stats.pending + stats.processing}</span>}
+                    </div>
+                  )}
                 </div>
                 <div className="text-sm font-bold">{groupCount}</div>
                 <div className="text-sm text-slate-600">{schedule}</div>
@@ -127,12 +145,20 @@ export default function PublisherClient({
 
                 <div className="flex flex-wrap gap-2 text-xs font-bold">
                   {(campaign.status === 'active' || campaign.status === 'paused') && (
-                    <Link
-                      href={`/publisher/${campaign.id}/edit`}
-                      className="text-slate-700 hover:text-slate-950"
-                    >
-                      עריכה
-                    </Link>
+                    <>
+                      <Link
+                        href={`/publisher/${campaign.id}`}
+                        className="text-emerald-700 hover:text-emerald-900"
+                      >
+                        סטטוס
+                      </Link>
+                      <Link
+                        href={`/publisher/${campaign.id}/edit`}
+                        className="text-slate-700 hover:text-slate-950"
+                      >
+                        עריכה
+                      </Link>
+                    </>
                   )}
 
                   {campaign.status === 'active' && (
