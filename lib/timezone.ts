@@ -152,3 +152,24 @@ export function dateKeyInTimeZone(
   const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   return `${map.year}-${map.month}-${map.day}`;
 }
+
+
+export function parseIsraelLocalDateTimeInput(value: string) {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+  if (!match) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      throw new Error('תאריך או שעה אינם תקינים.');
+    }
+    return date;
+  }
+
+  const [, year, month, day, hour, minute] = match;
+  return israelLocalDateTimeToUtc(
+    Number(year),
+    Number(month),
+    Number(day),
+    Number(hour),
+    Number(minute),
+  );
+}
