@@ -57,8 +57,7 @@ export default function EditScheduledMessageForm({
     setError('');
 
     try {
-      const localDate = new Date(`${formData.date}T${formData.time}`);
-      if (Number.isNaN(localDate.getTime())) {
+      if (!formData.date || !formData.time) {
         throw new Error('תאריך או שעה אינם תקינים.');
       }
 
@@ -66,7 +65,7 @@ export default function EditScheduledMessageForm({
         recipient: formData.recipient,
         name: formData.name,
         body: formData.body,
-        scheduledAt: localDate.toISOString(),
+        scheduledAt: `${formData.date}T${formData.time}`,
         recurrence: formData.recurrence,
         mediaUrl: formData.mediaUrl,
       });
