@@ -9,7 +9,7 @@ function mapState(state: string | null) {
   if (!state) return 'creating';
   if (state === 'authorized') return 'connected';
   if (state === 'notAuthorized') return 'waiting_for_qr';
-  if (state === 'blocked' || state === 'suspended') return 'error';
+  if (state === 'blocked' || state === 'suspended' || state === 'yellowCard') return 'error';
   return 'creating';
 }
 
