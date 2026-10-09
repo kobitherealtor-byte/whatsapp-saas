@@ -20,6 +20,8 @@ type StatusPayload = {
 export default function SettingsPage() {
   const [status, setStatus] = useState<ConnectionStatus>('creating');
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
+  const [providerState, setProviderState] = useState<string | null>(null);
+  const [rebooting, setRebooting] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [syncingGroups, setSyncingGroups] = useState(false);
@@ -41,6 +43,7 @@ export default function SettingsPage() {
       const nextStatus = data.status ?? 'disconnected';
       setStatus(nextStatus);
       setPhoneNumber(data.phoneNumber ?? null);
+      setProviderState(data.providerState ?? null);
       setError('');
 
       if (nextStatus !== 'waiting_for_qr') {
@@ -174,6 +177,31 @@ export default function SettingsPage() {
     }
   };
 
+  const reboot = async () => {
+    setRebooting(true);
+    setError('');
+    try {
+      const response = await fetch('/api/whatsapp/reboot', { method: 'POST' });
+      const data = (await response.json()) as StatusPayload;
+
+      if (!response.ok) {
+        throw new Error(data.error || 'אתחול החיבור נכשל.');
+      }
+
+      setStatus('creating');
+      setProviderState('starting');
+      window.setTimeout(() => void loadStatus(), 5000);
+    } catch (rebootError) {
+      setError(
+        rebootError instanceof Error
+          ? rebootError.message
+          : 'אתחול החיבור נכשל.',
+      );
+    } finally {
+      setRebooting(false);
+    }
+  };
+
   const connect = async () => {
     setBusy(true);
     setError('');
@@ -249,10 +277,30 @@ export default function SettingsPage() {
           {status === 'creating' && (
             <div className="py-10 text-center">
               <div className="mx-auto mb-5 h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-emerald-600" />
-              <h2 className="font-extrabold">מכין חיבור מאובטח...</h2>
+              <h2 className="font-extrabold">
+                {providerState === 'sleepMode'
+                  ? 'WhatsApp במצב שינה'
+                  : providerState === 'starting'
+                    ? 'החיבור בתהליך הפעלה'
+                    : 'מכין חיבור מאובטח...'}
+              </h2>
               <p className="mt-2 text-sm text-slate-500">
-                GREEN API מקים את ה-Instance. הסטטוס מתעדכן אוטומטית.
+                {providerState === 'sleepMode'
+                  ? 'הטלפון המחובר כנראה לא היה זמין. המערכת תבדוק שוב אוטומטית.'
+                  : providerState === 'starting'
+                    ? 'המערכת ממתינה לסיום ההפעלה. בדרך כלל זה מסתיים בתוך כמה דקות.'
+                    : 'החיבור מוקם והסטטוס מתעדכן אוטומטית.'}
               </p>
+              {(providerState === 'starting' || providerState === 'sleepMode') && (
+                <button
+                  type="button"
+                  onClick={() => void reboot()}
+                  disabled={rebooting}
+                  className="mt-5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {rebooting ? 'מאתחל...' : 'אתחל חיבור'}
+                </button>
+              )}
             </div>
           )}
 
@@ -348,7 +396,11 @@ export default function SettingsPage() {
               </div>
               <h2 className="text-xl font-extrabold">החיבור דורש טיפול</h2>
               <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-                בדוק את ההגדרות ונסה שוב.
+                {providerState === 'blocked'
+                  ? 'חשבון WhatsApp נחסם. השליחות נעצרו עד להסדרת החסימה.'
+                  : providerState === 'suspended' || providerState === 'yellowCard'
+                    ? 'יש כרגע הגבלות זמניות על החשבון. השליחות נעצרו כדי לא לצבור כשלונות.'
+                    : 'החיבור דורש בדיקה לפני שנמשיך לשלוח.'}
               </p>
               <button
                 onClick={() => void loadStatus()}
