@@ -14,6 +14,7 @@ const protectedPrefixes = [
   '/holiday-guard',
   '/system-status',
   '/settings',
+  '/admin',
 ];
 
 export async function proxy(request: NextRequest) {
