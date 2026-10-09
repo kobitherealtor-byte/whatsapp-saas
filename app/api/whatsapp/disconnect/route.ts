@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { logoutGreenApiInstance } from '@/lib/green-api';
+import { safeUserApiError } from '@/lib/api-error';
 
 export async function POST() {
   try {
@@ -47,7 +48,7 @@ export async function POST() {
 
     return NextResponse.json({ ok: true, status: 'waiting_for_qr' });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'unknown_error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    const safe = safeUserApiError(error, 'לא הצלחנו לנתק את חיבור ה-WhatsApp.');
+    return NextResponse.json({ error: safe.message }, { status: safe.status });
   }
 }
