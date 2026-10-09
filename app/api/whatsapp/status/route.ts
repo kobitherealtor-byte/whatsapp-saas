@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getInstanceState, getWaSettings } from '@/lib/green-api';
 import { assertUserRateLimit } from '@/lib/rate-limit';
 import { wakeAutomationWorker } from '@/lib/automation-wake';
+import { safeUserApiError } from '@/lib/api-error';
 
 function mapState(state: string | null) {
   if (!state) return 'creating';
@@ -97,11 +98,7 @@ export async function GET() {
       phoneNumber,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'unknown_error';
-    const status = message === 'rate_limited' ? 429 : 500;
-    return NextResponse.json(
-      { error: message === 'rate_limited' ? 'יותר מדי בקשות. נסה שוב בעוד רגע.' : message },
-      { status },
-    );
+    const safe = safeUserApiError(error, 'לא הצלחנו לבדוק את מצב חיבור ה-WhatsApp.');
+    return NextResponse.json({ error: safe.message }, { status: safe.status });
   }
 }
