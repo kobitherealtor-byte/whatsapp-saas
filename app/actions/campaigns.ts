@@ -25,6 +25,7 @@ export async function createGroupCampaign(input: {
   startDate: string;
   endDate: string;
   skipHolidays: boolean;
+  mediaUrl?: string;
 }) {
   const { supabase, user } = await requireUser();
 
@@ -74,6 +75,7 @@ export async function createGroupCampaign(input: {
       // New normalized columns
       name: input.name.trim(),
       message_body: input.message.trim(),
+      media_url: input.mediaUrl?.trim() || null,
       days_of_week: uniqueDays,
       send_time: input.sendTime,
       timezone: 'Asia/Jerusalem',
@@ -85,6 +87,7 @@ export async function createGroupCampaign(input: {
 
       // Legacy compatibility columns
       campaign_name: input.name.trim(),
+      file_url: input.mediaUrl?.trim() || null,
       allowed_days: uniqueDays,
       dispatch_time: input.sendTime,
     })
