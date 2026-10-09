@@ -29,6 +29,7 @@ type BroadcastJob = {
   recipientNumber: string;
   message: string;
   mediaUrl: string | null;
+  delaySeconds: number;
   connection: Connection | null;
 };
 
@@ -63,6 +64,10 @@ async function postJson<T>(
   }
 
   return data;
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function sendJob(
@@ -176,7 +181,7 @@ export async function POST(request: Request) {
     let broadcastSent = 0;
     let broadcastFailed = 0;
 
-    for (const job of broadcastClaim.jobs) {
+    for (const [index, job] of broadcastClaim.jobs.entries()) {
       try {
         const idMessage = await sendJob({
           chatId: normalizePersonalChatId(job.recipientNumber),
@@ -213,6 +218,10 @@ export async function POST(request: Request) {
         );
 
         broadcastFailed += 1;
+      }
+
+      if (index < broadcastClaim.jobs.length - 1) {
+        await wait(Math.max(1, Math.min(job.delaySeconds || 3, 10)) * 1000);
       }
     }
 
