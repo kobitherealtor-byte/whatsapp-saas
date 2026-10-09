@@ -99,6 +99,7 @@ export async function getDashboardData() {
     campaignsCountResult,
     groupsCountResult,
     failedCountResult,
+    profileResult,
   ] = await Promise.all([
     supabase
       .from('whatsapp_connections')
@@ -129,6 +130,10 @@ export async function getDashboardData() {
       .from('send_logs')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'failed'),
+    supabase
+      .from('profiles')
+      .select('business_name')
+      .maybeSingle(),
   ]);
 
   const firstError = [
@@ -138,6 +143,7 @@ export async function getDashboardData() {
     campaignsCountResult.error,
     groupsCountResult.error,
     failedCountResult.error,
+    profileResult.error,
   ].find(Boolean);
 
   if (firstError) throw new Error(firstError.message);
@@ -149,6 +155,7 @@ export async function getDashboardData() {
     activeCampaigns: campaignsCountResult.count ?? 0,
     groups: groupsCountResult.count ?? 0,
     failed: failedCountResult.count ?? 0,
+    businessName: profileResult.data?.business_name ?? null,
   };
 }
 
