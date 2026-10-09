@@ -65,7 +65,10 @@ export default function PublisherClient({
           <h1 className="text-3xl font-black">פרסום לקבוצות</h1>
           <p className="mt-1 text-slate-500">קמפיינים קבועים לקבוצות WhatsApp לפי ימים ושעות.</p>
         </div>
-        <Link href="/publisher/new" className="rounded-xl bg-slate-900 px-5 py-3 text-center text-sm font-bold text-white hover:bg-slate-800">+ קמפיין חדש</Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/groups" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-bold text-slate-700 hover:bg-slate-50">ניהול קבוצות</Link>
+          <Link href="/publisher/new" className="rounded-xl bg-slate-900 px-5 py-3 text-center text-sm font-bold text-white hover:bg-slate-800">+ קמפיין חדש</Link>
+        </div>
       </header>
 
       {error && (
