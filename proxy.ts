@@ -15,6 +15,7 @@ const protectedPrefixes = [
   '/system-status',
   '/settings',
   '/admin',
+  '/onboarding',
 ];
 
 export async function proxy(request: NextRequest) {
