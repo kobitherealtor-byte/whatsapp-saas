@@ -17,6 +17,7 @@ export default function NewScheduledMessage() {
     date: '',
     time: '',
     recurrence: 'none',
+    mediaUrl: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,6 +38,7 @@ export default function NewScheduledMessage() {
         body: formData.body,
         scheduledAt: localDate.toISOString(),
         recurrence: formData.recurrence,
+        mediaUrl: formData.mediaUrl,
       });
 
       router.push('/scheduler');
@@ -104,6 +106,19 @@ export default function NewScheduledMessage() {
               className="mt-2 w-full resize-y rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-emerald-500"
               disabled={loading}
             />
+          </label>
+
+          <label className="block text-sm font-bold text-slate-700">
+            קישור למדיה
+            <input
+              type="url"
+              value={formData.mediaUrl}
+              onChange={(e) => setFormData({ ...formData, mediaUrl: e.target.value })}
+              placeholder="https://.../image.jpg"
+              className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-emerald-500"
+              disabled={loading}
+            />
+            <span className="mt-1 block text-xs font-normal text-slate-400">אופציונלי — תמונה או קובץ עם קישור ציבורי.</span>
           </label>
 
           <div className="grid gap-4 sm:grid-cols-2">
