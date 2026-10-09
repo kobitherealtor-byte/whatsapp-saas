@@ -6,6 +6,10 @@ const features = [
     text: 'מתזמנים הודעה אישית ללקוח לתאריך ושעה מדויקים, עורכים, מבטלים או שולחים מיד.',
   },
   {
+    title: 'Broadcast Campaigns',
+    text: 'מעלים רשימת נמענים ושולחים הודעה אישית לכל מספר עם תזמון, קצב שליחה ומעקב.',
+  },
+  {
     title: 'Group Publisher',
     text: 'מגדירים פעם אחת קבוצות, ימים ושעה — והמערכת מפרסמת לפי התוכנית באופן אוטומטי.',
   },
@@ -28,11 +32,11 @@ export default function Home() {
             WhatsApp automation, בלי כאב ראש
           </div>
           <h1 className="max-w-3xl text-4xl font-black leading-tight sm:text-6xl">
-            מתזמנים הודעות ומפרסמים לקבוצות — במקום אחד.
+            מתזמנים, מפיצים ומנהלים WhatsApp — במקום אחד.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
             מערכת SaaS לעסקים קטנים שרוצים לעבוד עם WhatsApp בצורה מסודרת:
-            הודעות אישיות מתוזמנות, פרסום קבוע לקבוצות, בקרה על שליחות וחיבור פשוט דרך QR.
+            הודעות אישיות מתוזמנות, קמפייני תפוצה, פרסום קבוע לקבוצות, בקרה על שליחות וחיבור פשוט דרך QR.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/login" className="rounded-2xl bg-emerald-500 px-6 py-3 font-bold text-slate-950 hover:bg-emerald-400">
@@ -90,7 +94,7 @@ export default function Home() {
       <section id="how-it-works" className="border-y border-white/10 bg-white/[0.03]">
         <div className="mx-auto max-w-6xl px-6 py-16">
           <div className="max-w-2xl">
-            <div className="text-sm font-bold text-emerald-300">שני מוצרים. ממשק אחד.</div>
+            <div className="text-sm font-bold text-emerald-300">שלושה מנועי שליחה. ממשק אחד.</div>
             <h2 className="mt-2 text-3xl font-black sm:text-4xl">פשוט מספיק לעבודה יומיומית</h2>
             <p className="mt-4 leading-7 text-slate-300">
               אין צורך להיכנס למערכות אוטומציה או לעבוד עם מפתחות API. המשתמש מנהל הכל מתוך המערכת.
