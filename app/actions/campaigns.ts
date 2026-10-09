@@ -53,7 +53,9 @@ export async function createGroupCampaign(input: {
   const { data: groups, error: groupsError } = await supabase
     .from('whatsapp_groups')
     .select('id')
-    .in('id', input.groupIds);
+    .in('id', input.groupIds)
+    .eq('is_active', true)
+    .eq('user_enabled', true);
 
   if (groupsError) throw new Error(groupsError.message);
   if ((groups ?? []).length !== input.groupIds.length) {
@@ -137,7 +139,7 @@ export async function setCampaignStatus(
 
   if (status === 'active') {
     await assertAccountOperational(user.id);
-    await assertCanActivateCampaign(user.id);
+    await assertCanActivateCampaign(user.id, id);
 
     const { data: campaign, error } = await supabase
       .from('group_campaigns')
@@ -230,7 +232,9 @@ export async function updateGroupCampaign(
   const { data: groups, error: groupsError } = await supabase
     .from('whatsapp_groups')
     .select('id')
-    .in('id', input.groupIds);
+    .in('id', input.groupIds)
+    .eq('is_active', true)
+    .eq('user_enabled', true);
 
   if (groupsError) throw new Error(groupsError.message);
   if ((groups ?? []).length !== input.groupIds.length) {
@@ -268,6 +272,8 @@ export async function updateGroupCampaign(
       file_url: input.mediaUrl?.trim() || null,
       allowed_days: uniqueDays,
       dispatch_time: input.sendTime,
+      prepare_fail_count: 0,
+      last_error: null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
