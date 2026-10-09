@@ -214,19 +214,43 @@ export async function POST(request: Request) {
           );
 
           if (releaseError) throw releaseError;
+
+          await admin
+            .from('group_campaigns')
+            .update({ prepare_fail_count: 0 })
+            .eq('id', campaign.id);
         } catch (campaignError) {
           const message =
             campaignError instanceof Error
               ? campaignError.message
               : 'campaign_prepare_failed';
 
+          const { data: failureState } = await admin
+            .from('group_campaigns')
+            .select('prepare_fail_count')
+            .eq('id', campaign.id)
+            .maybeSingle();
+
+          const nextFailureCount =
+            Number(failureState?.prepare_fail_count ?? 0) + 1;
+          const shouldPause = nextFailureCount >= 3;
+
+          await admin
+            .from('group_campaigns')
+            .update({ prepare_fail_count: nextFailureCount })
+            .eq('id', campaign.id);
+
           await admin.rpc('release_campaign_claim', {
             p_campaign_id: campaign.id,
             p_claim_token: campaign.dispatch_claim_token,
-            p_next_run_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+            p_next_run_at: shouldPause
+              ? null
+              : new Date(Date.now() + 5 * 60 * 1000).toISOString(),
             p_last_run_at: campaign.next_run_at,
-            p_status: 'active',
-            p_last_error: message,
+            p_status: shouldPause ? 'paused' : 'active',
+            p_last_error: shouldPause
+              ? `הקמפיין הושהה אוטומטית אחרי 3 כשלים בהכנת השליחה: ${message}`
+              : message,
           });
         }
       }
