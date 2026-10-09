@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { wakeAutomationWorker } from '@/lib/automation-wake';
+import { assertCanCreatePendingMessage } from '@/lib/account-limits';
 
 async function requireUser() {
   const supabase = await createClient();
@@ -27,6 +28,7 @@ export async function createScheduledMessage(formData: {
   mediaUrl?: string;
 }) {
   const { supabase, user } = await requireUser();
+  await assertCanCreatePendingMessage(user.id);
 
   const recipient = formData.recipient.replace(/[^0-9+]/g, '');
   if (recipient.length < 9) throw new Error('מספר הטלפון אינו תקין.');
@@ -85,6 +87,7 @@ export async function cancelScheduledMessage(id: string) {
 
 export async function duplicateScheduledMessage(id: string) {
   const { supabase, user } = await requireUser();
+  await assertCanCreatePendingMessage(user.id);
 
   const { data: source, error: sourceError } = await supabase
     .from('scheduled_messages')
