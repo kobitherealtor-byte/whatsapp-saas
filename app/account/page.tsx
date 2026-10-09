@@ -2,6 +2,8 @@ import AppShell from '@/components/AppShell';
 import AccountForm from '@/components/AccountForm';
 import { createClient } from '@/lib/supabase/server';
 import { getAccountLimits, getAccountUsage } from '@/lib/account-limits';
+import { isCurrentUserAdmin } from '@/lib/admin';
+import Link from 'next/link';
 
 export default async function AccountPage() {
   const supabase = await createClient();
@@ -11,7 +13,7 @@ export default async function AccountPage() {
 
   if (!user) return null;
 
-  const [{ data: profile }, limits, usage] = await Promise.all([
+  const [{ data: profile }, limits, usage, isAdmin] = await Promise.all([
     supabase
     .from('profiles')
     .select('business_name')
@@ -19,14 +21,22 @@ export default async function AccountPage() {
     .maybeSingle(),
     getAccountLimits(user.id),
     getAccountUsage(user.id),
+    isCurrentUserAdmin(),
   ]);
 
   return (
     <AppShell>
       <div className="mx-auto max-w-2xl pb-20 lg:pb-0">
-        <div className="mb-6">
-          <h1 className="text-3xl font-black">החשבון שלי</h1>
-          <p className="mt-1 text-slate-500">פרטים בסיסיים של סביבת העבודה שלך.</p>
+        <div className="mb-6 flex items-end justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-black">החשבון שלי</h1>
+            <p className="mt-1 text-slate-500">פרטים בסיסיים של סביבת העבודה שלך.</p>
+          </div>
+          {isAdmin && (
+            <Link href="/admin" className="text-sm font-bold text-emerald-700 hover:underline">
+              Admin
+            </Link>
+          )}
         </div>
         <AccountForm
           email={user.email ?? ''}
