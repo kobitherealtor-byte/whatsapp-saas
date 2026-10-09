@@ -229,6 +229,7 @@ export async function getCalendarEvents() {
 
   if (messagesResult.error) throw new Error(messagesResult.error.message);
   if (campaignsResult.error) throw new Error(campaignsResult.error.message);
+  if (broadcastCampaignsResult.error) throw new Error(broadcastCampaignsResult.error.message);
   if (broadcastsResult.error) throw new Error(broadcastsResult.error.message);
 
   const messageEvents: CalendarEvent[] = (messagesResult.data ?? []).map((item) => ({
@@ -304,7 +305,7 @@ export async function getCampaignById(id: string) {
 
 export type DeliveryHistoryItem = {
   id: string;
-  source: 'personal' | 'group';
+  source: 'personal' | 'group' | 'broadcast' | 'inbox';
   title: string;
   destination: string;
   status: 'sent' | 'failed' | 'skipped';
@@ -313,13 +314,14 @@ export type DeliveryHistoryItem = {
   error: string | null;
   retryMessageId: string | null;
   retryDispatchId: string | null;
+  retryBroadcastRecipientId: string | null;
 };
 
 export async function getDeliveryHistory() {
   const { supabase, user } = await getAuthedClient();
   const admin = createAdminClient();
 
-  const [messagesResult, dispatchesResult] = await Promise.all([
+  const [messagesResult, dispatchesResult, broadcastRecipientsResult, inboxLogsResult] = await Promise.all([
     supabase
       .from('scheduled_messages')
       .select('id, recipient_name, recipient_number, message_body, status, sent_at, error_text, updated_at')
@@ -333,21 +335,43 @@ export async function getDeliveryHistory() {
       .in('status', ['sent', 'failed', 'skipped'])
       .order('updated_at', { ascending: false })
       .limit(150),
+    admin
+      .from('broadcast_recipients')
+      .select('id, campaign_id, recipient_name, recipient_number, status, error_text, sent_at, updated_at')
+      .eq('user_id', user.id)
+      .in('status', ['sent', 'failed', 'skipped'])
+      .order('updated_at', { ascending: false })
+      .limit(150),
+    admin
+      .from('send_logs')
+      .select('id, destination, detail, status, error_message, sent_at, created_at')
+      .eq('user_id', user.id)
+      .eq('kind', 'inbox')
+      .in('status', ['sent', 'failed'])
+      .order('created_at', { ascending: false })
+      .limit(100),
   ]);
 
   if (messagesResult.error) throw new Error(messagesResult.error.message);
   if (dispatchesResult.error) throw new Error(dispatchesResult.error.message);
+  if (broadcastRecipientsResult.error) throw new Error(broadcastRecipientsResult.error.message);
+  if (inboxLogsResult.error) throw new Error(inboxLogsResult.error.message);
 
   const dispatches = dispatchesResult.data ?? [];
   const groupIds = [...new Set(dispatches.map((item) => item.group_id).filter(Boolean))];
+  const broadcastRecipients = broadcastRecipientsResult.data ?? [];
   const campaignIds = [...new Set(dispatches.map((item) => item.campaign_id).filter(Boolean))];
+  const broadcastCampaignIds = [...new Set(broadcastRecipients.map((item) => item.campaign_id).filter(Boolean))];
 
-  const [groupsResult, campaignsResult] = await Promise.all([
+  const [groupsResult, campaignsResult, broadcastCampaignsResult] = await Promise.all([
     groupIds.length
       ? admin.from('whatsapp_groups').select('id, name').in('id', groupIds)
       : Promise.resolve({ data: [], error: null }),
     campaignIds.length
       ? admin.from('group_campaigns').select('id, name').in('id', campaignIds)
+      : Promise.resolve({ data: [], error: null }),
+    broadcastCampaignIds.length
+      ? admin.from('broadcast_campaigns').select('id, name, message_body').in('id', broadcastCampaignIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
 
@@ -356,6 +380,12 @@ export async function getDeliveryHistory() {
 
   const groupNames = new Map((groupsResult.data ?? []).map((item) => [item.id, item.name]));
   const campaignNames = new Map((campaignsResult.data ?? []).map((item) => [item.id, item.name]));
+  const broadcastCampaigns = new Map(
+    (broadcastCampaignsResult.data ?? []).map((item) => [
+      item.id,
+      { name: item.name, messageBody: item.message_body },
+    ]),
+  );
 
   const personal: DeliveryHistoryItem[] = (messagesResult.data ?? []).map((item) => ({
     id: `message:${item.id}`,
@@ -368,6 +398,7 @@ export async function getDeliveryHistory() {
     error: item.error_text,
     retryMessageId: item.status === 'failed' ? item.id : null,
     retryDispatchId: null,
+    retryBroadcastRecipientId: null,
   }));
 
   const group: DeliveryHistoryItem[] = dispatches.map((item) => ({
@@ -381,9 +412,41 @@ export async function getDeliveryHistory() {
     error: item.error_text,
     retryMessageId: null,
     retryDispatchId: item.status === 'failed' ? item.id : null,
+    retryBroadcastRecipientId: null,
   }));
 
-  return [...personal, ...group]
+  const broadcast: DeliveryHistoryItem[] = broadcastRecipients.map((item) => {
+    const campaign = broadcastCampaigns.get(item.campaign_id);
+    return {
+      id: `broadcast:${item.id}`,
+      source: 'broadcast',
+      title: campaign?.name || 'קמפיין תפוצה',
+      destination: item.recipient_name || item.recipient_number,
+      status: item.status as 'sent' | 'failed' | 'skipped',
+      occurredAt: item.sent_at || item.updated_at,
+      detail: campaign?.messageBody || null,
+      error: item.error_text,
+      retryMessageId: null,
+      retryDispatchId: null,
+      retryBroadcastRecipientId: item.status === 'failed' ? item.id : null,
+    };
+  });
+
+  const inbox: DeliveryHistoryItem[] = (inboxLogsResult.data ?? []).map((item) => ({
+    id: `inbox:${item.id}`,
+    source: 'inbox',
+    title: 'הודעת Inbox',
+    destination: item.destination || 'WhatsApp',
+    status: item.status as 'sent' | 'failed',
+    occurredAt: item.sent_at || item.created_at,
+    detail: item.detail,
+    error: item.error_message,
+    retryMessageId: null,
+    retryDispatchId: null,
+    retryBroadcastRecipientId: null,
+  }));
+
+  return [...personal, ...group, ...broadcast, ...inbox]
     .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
     .slice(0, 200);
 }
