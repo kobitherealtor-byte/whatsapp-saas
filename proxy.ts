@@ -10,6 +10,7 @@ const protectedPrefixes = [
   '/groups',
   '/account',
   '/holiday-guard',
+  '/system-status',
   '/settings',
 ];
 
