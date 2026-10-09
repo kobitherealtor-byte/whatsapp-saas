@@ -2,6 +2,8 @@ import AppShell from '@/components/AppShell';
 import { getUpcomingHolidayDates } from '@/lib/data';
 import { ensureHolidayGuardCalendar } from '@/lib/holidays';
 
+export const dynamic = 'force-dynamic';
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('he-IL', {
     weekday: 'long',
