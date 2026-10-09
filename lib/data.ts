@@ -23,6 +23,8 @@ export type CampaignRow = {
   skip_holidays: boolean;
   status: 'draft' | 'active' | 'paused' | 'completed' | 'cancelled';
   next_run_at: string | null;
+  last_error: string | null;
+  prepare_fail_count: number;
   campaign_groups?: Array<{ group_id: string }> | null;
 };
 
@@ -65,7 +67,7 @@ export async function getCampaigns() {
 
   const { data, error } = await supabase
     .from('group_campaigns')
-    .select('id, name, message_body, days_of_week, send_time, start_date, end_date, skip_holidays, status, next_run_at, campaign_groups(group_id)')
+    .select('id, name, message_body, days_of_week, send_time, start_date, end_date, skip_holidays, status, next_run_at, last_error, prepare_fail_count, campaign_groups(group_id)')
     .order('created_at', { ascending: false })
     .limit(100);
 
