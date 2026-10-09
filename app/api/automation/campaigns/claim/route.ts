@@ -82,7 +82,7 @@ export async function POST(request: Request) {
       const { data: groups, error: groupsError } = groupIds.length
         ? await admin
             .from('whatsapp_groups')
-            .select('id, user_id, chat_id, name, is_active')
+            .select('id, user_id, chat_id, name, is_active, user_enabled')
             .in('id', groupIds)
         : { data: [], error: null };
 
@@ -144,7 +144,7 @@ export async function POST(request: Request) {
             .map((groupId) => groupsById.get(groupId))
             .filter(
               (group): group is NonNullable<typeof group> =>
-                Boolean(group?.is_active && group?.chat_id),
+                Boolean(group?.is_active && group?.user_enabled !== false && group?.chat_id),
             );
 
           if (holidayName) {
