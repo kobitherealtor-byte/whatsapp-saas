@@ -150,6 +150,14 @@ export default function LoginPage() {
                 />
               </label>
 
+              {!isRegister && (
+                <div className="text-left">
+                  <Link href="/forgot-password" className="text-xs font-bold text-emerald-700 hover:underline">
+                    שכחת סיסמה?
+                  </Link>
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={loading || !configured}
