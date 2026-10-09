@@ -54,12 +54,21 @@ export async function GET() {
       phoneNumber = wa.phone || null;
     }
 
+    const { data: existingConnection } = await admin
+      .from('whatsapp_connections')
+      .select('connected_at')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
     await admin
       .from('whatsapp_connections')
       .update({
         status,
         phone_number: phoneNumber,
-        connected_at: status === 'connected' ? new Date().toISOString() : null,
+        connected_at:
+          status === 'connected'
+            ? existingConnection?.connected_at ?? new Date().toISOString()
+            : null,
         last_error: status === 'error' ? state : null,
       })
       .eq('user_id', user.id);
