@@ -247,3 +247,67 @@ export async function getCampaignById(id: string) {
     campaign_groups: Array<{ group_id: string }>;
   };
 }
+
+
+export type DeliveryHistoryItem = {
+  id: string;
+  source: 'personal' | 'group';
+  title: string;
+  destination: string;
+  status: 'sent' | 'failed' | 'skipped';
+  occurredAt: string;
+  detail: string | null;
+  error: string | null;
+  retryMessageId: string | null;
+};
+
+export async function getDeliveryHistory() {
+  const { supabase } = await getAuthedClient();
+
+  const [messagesResult, logsResult] = await Promise.all([
+    supabase
+      .from('scheduled_messages')
+      .select('id, recipient_name, recipient_number, message_body, status, sent_at, error_text, updated_at')
+      .in('status', ['sent', 'failed'])
+      .order('updated_at', { ascending: false })
+      .limit(150),
+    supabase
+      .from('send_logs')
+      .select('id, entity_type, status, destination, detail, error_message, sent_at, created_at')
+      .eq('entity_type', 'group_campaign')
+      .in('status', ['sent', 'failed', 'skipped'])
+      .order('created_at', { ascending: false })
+      .limit(150),
+  ]);
+
+  if (messagesResult.error) throw new Error(messagesResult.error.message);
+  if (logsResult.error) throw new Error(logsResult.error.message);
+
+  const personal: DeliveryHistoryItem[] = (messagesResult.data ?? []).map((item) => ({
+    id: `message:${item.id}`,
+    source: 'personal',
+    title: item.recipient_name || 'הודעה אישית',
+    destination: item.recipient_number,
+    status: item.status as 'sent' | 'failed',
+    occurredAt: item.sent_at || item.updated_at,
+    detail: item.message_body,
+    error: item.error_text,
+    retryMessageId: item.status === 'failed' ? item.id : null,
+  }));
+
+  const group: DeliveryHistoryItem[] = (logsResult.data ?? []).map((item) => ({
+    id: `log:${item.id}`,
+    source: 'group',
+    title: 'פרסום לקבוצה',
+    destination: item.destination || 'קבוצת WhatsApp',
+    status: item.status as 'sent' | 'failed' | 'skipped',
+    occurredAt: item.sent_at || item.created_at,
+    detail: item.detail,
+    error: item.error_message,
+    retryMessageId: null,
+  }));
+
+  return [...personal, ...group]
+    .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
+    .slice(0, 200);
+}
