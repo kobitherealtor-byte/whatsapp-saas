@@ -282,7 +282,10 @@ export async function POST(request: Request) {
           personal_failed: personalFailed,
           group_claimed: campaignClaim.jobs.length,
           group_sent: groupSent,
-          group_failed: groupFailed + broadcastFailed,
+          group_failed: groupFailed,
+          broadcast_claimed: broadcastClaim.jobs.length,
+          broadcast_sent: broadcastSent,
+          broadcast_failed: broadcastFailed,
           duration_ms: durationMs,
           error_text: null,
         })
