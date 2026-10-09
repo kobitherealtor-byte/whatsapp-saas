@@ -283,7 +283,7 @@ export async function sendScheduledMessageNow(id: string) {
 
   const { data: message, error: messageError } = await supabase
     .from('scheduled_messages')
-    .select('status')
+    .select('status, recipient_number, recipient_name, message_body, media_url, recurrence')
     .eq('id', id)
     .eq('user_id', user.id)
     .single();
