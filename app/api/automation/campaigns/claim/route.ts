@@ -149,6 +149,28 @@ export async function POST(request: Request) {
 
           if (holidayName) {
             if (activeGroups.length > 0) {
+              const skippedDispatches = activeGroups.map((group) => ({
+                campaign_id: campaign.id,
+                user_id: campaign.user_id,
+                group_id: group.id,
+                scheduled_for: scheduledFor,
+                message_body: campaign.message_body,
+                media_url: campaign.media_url,
+                destination_chat_id: group.chat_id,
+                status: 'skipped',
+                error_text: `Holiday Guard: ${holidayName}`,
+                available_at: scheduledFor,
+              }));
+
+              const { error: skippedDispatchError } = await admin
+                .from('campaign_dispatches')
+                .upsert(skippedDispatches, {
+                  onConflict: 'campaign_id,group_id,scheduled_for',
+                  ignoreDuplicates: true,
+                });
+
+              if (skippedDispatchError) throw skippedDispatchError;
+
               const skipLogs = activeGroups.map((group) => ({
                 user_id: campaign.user_id,
                 entity_type: 'group_campaign',
