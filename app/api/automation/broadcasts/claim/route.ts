@@ -52,6 +52,7 @@ export async function POST(request: Request) {
       recipient_number: string;
       message_body: string;
       media_url: string | null;
+      send_interval_seconds: number;
       claim_token: string;
     }) => {
       const credential = credentialMap.get(row.user_id);
@@ -62,6 +63,7 @@ export async function POST(request: Request) {
         recipientNumber: row.recipient_number,
         message: row.message_body,
         mediaUrl: row.media_url,
+        delaySeconds: Number(row.send_interval_seconds ?? 3),
         connection: credential
           ? {
               idInstance: credential.id_instance,
