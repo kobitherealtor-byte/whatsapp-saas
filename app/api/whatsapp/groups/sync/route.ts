@@ -55,6 +55,29 @@ export async function POST() {
       if (upsertError) throw upsertError;
     }
 
+    const activeChatIds = groups.map((group) => group.chat_id);
+
+    const { data: storedGroups, error: storedGroupsError } = await admin
+      .from('whatsapp_groups')
+      .select('id, chat_id')
+      .eq('user_id', user.id)
+      .eq('is_active', true);
+
+    if (storedGroupsError) throw storedGroupsError;
+
+    const staleIds = (storedGroups ?? [])
+      .filter((group) => !activeChatIds.includes(group.chat_id))
+      .map((group) => group.id);
+
+    if (staleIds.length > 0) {
+      const { error: deactivateError } = await admin
+        .from('whatsapp_groups')
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .in('id', staleIds);
+
+      if (deactivateError) throw deactivateError;
+    }
+
     return NextResponse.json({
       synced: groups.length,
       groups: groups.map((group) => ({
