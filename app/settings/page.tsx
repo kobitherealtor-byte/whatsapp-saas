@@ -23,6 +23,7 @@ export default function SettingsPage() {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [syncingGroups, setSyncingGroups] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -137,6 +138,39 @@ export default function SettingsPage() {
       );
     } finally {
       setSyncingGroups(false);
+    }
+  };
+
+  const disconnect = async () => {
+    if (!window.confirm('לנתק את חשבון ה-WhatsApp מהמופע?')) return;
+
+    setDisconnecting(true);
+    setError('');
+    setSyncMessage('');
+
+    try {
+      const response = await fetch('/api/whatsapp/disconnect', {
+        method: 'POST',
+      });
+      const data = (await response.json()) as StatusPayload & {
+        ok?: boolean;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.error || 'ניתוק WhatsApp נכשל.');
+      }
+
+      setStatus(data.status ?? 'waiting_for_qr');
+      setPhoneNumber(null);
+      setQrDataUrl(null);
+    } catch (disconnectError) {
+      setError(
+        disconnectError instanceof Error
+          ? disconnectError.message
+          : 'ניתוק WhatsApp נכשל.',
+      );
+    } finally {
+      setDisconnecting(false);
     }
   };
 
@@ -290,6 +324,17 @@ export default function SettingsPage() {
                   {syncMessage}
                 </div>
               )}
+
+              <div className="mt-6 border-t border-slate-100 pt-5">
+                <button
+                  type="button"
+                  onClick={() => void disconnect()}
+                  disabled={disconnecting}
+                  className="rounded-xl px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                >
+                  {disconnecting ? 'מנתק...' : 'נתק WhatsApp'}
+                </button>
+              </div>
             </div>
           )}
 
