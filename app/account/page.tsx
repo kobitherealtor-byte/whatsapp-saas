@@ -44,7 +44,7 @@ export default async function AccountPage() {
             </span>
           </div>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-xl bg-slate-50 p-4">
               <div className="text-2xl font-black">{usage.pendingMessages} / {limits.maxPendingMessages}</div>
               <div className="mt-1 text-xs font-semibold text-slate-500">הודעות פעילות</div>
@@ -52,6 +52,10 @@ export default async function AccountPage() {
             <div className="rounded-xl bg-slate-50 p-4">
               <div className="text-2xl font-black">{usage.activeCampaigns} / {limits.maxActiveCampaigns}</div>
               <div className="mt-1 text-xs font-semibold text-slate-500">קמפיינים פעילים</div>
+            </div>
+            <div className="rounded-xl bg-slate-50 p-4">
+              <div className="text-2xl font-black">{limits.maxBroadcastRecipients}</div>
+              <div className="mt-1 text-xs font-semibold text-slate-500">נמענים בקמפיין תפוצה</div>
             </div>
             <div className="rounded-xl bg-slate-50 p-4">
               <div className="text-2xl font-black">{usage.sentThisPeriod} / {limits.monthlySendLimit}</div>
