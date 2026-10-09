@@ -82,7 +82,7 @@ export default function CalendarClient({ events }: { events: CalendarEvent[] }) 
       <header className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <h1 className="text-3xl font-black">יומן תזמונים</h1>
-          <p className="mt-1 text-slate-500">הודעות אישיות וקמפיינים שמגיעים מהנתונים האמיתיים בחשבון.</p>
+          <p className="mt-1 text-slate-500">הודעות אישיות, פרסום לקבוצות וקמפייני תפוצה במקום אחד.</p>
         </div>
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => moveMonth(1)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold hover:bg-slate-50">‹</button>
@@ -94,6 +94,7 @@ export default function CalendarClient({ events }: { events: CalendarEvent[] }) 
       <div className="mb-4 flex flex-wrap gap-4 text-xs font-bold text-slate-600">
         <span className="flex items-center gap-2"><i className="h-3 w-3 rounded-full bg-emerald-500" /> הודעה אישית</span>
         <span className="flex items-center gap-2"><i className="h-3 w-3 rounded-full bg-blue-500" /> פרסום לקבוצות</span>
+        <span className="flex items-center gap-2"><i className="h-3 w-3 rounded-full bg-violet-500" /> קמפיין תפוצה</span>
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -123,7 +124,7 @@ export default function CalendarClient({ events }: { events: CalendarEvent[] }) 
                       <button
                         key={event.id}
                         onClick={() => setSelected(event)}
-                        className={`block w-full truncate rounded-lg px-2 py-1.5 text-right text-[11px] font-bold ${event.type === 'scheduler' ? 'bg-emerald-50 text-emerald-800' : 'bg-blue-50 text-blue-800'}`}
+                        className={`block w-full truncate rounded-lg px-2 py-1.5 text-right text-[11px] font-bold ${event.type === 'scheduler' ? 'bg-emerald-50 text-emerald-800' : event.type === 'broadcast' ? 'bg-violet-50 text-violet-800' : 'bg-blue-50 text-blue-800'}`}
                       >
                         <span className="ml-1 font-mono">{event.time}</span>
                         {event.title}
@@ -143,7 +144,7 @@ export default function CalendarClient({ events }: { events: CalendarEvent[] }) 
       {selected && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-4 sm:items-center" onClick={() => setSelected(null)}>
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="text-xs font-bold text-slate-400">{selected.type === 'scheduler' ? 'הודעה אישית' : 'קמפיין קבוצות'}</div>
+            <div className="text-xs font-bold text-slate-400">{selected.type === 'scheduler' ? 'הודעה אישית' : selected.type === 'broadcast' ? 'קמפיין תפוצה' : 'קמפיין קבוצות'}</div>
             <h2 className="mt-1 text-xl font-black">{selected.title}</h2>
             <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">{selected.detail}</p>
             <div className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
