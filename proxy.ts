@@ -7,6 +7,7 @@ const protectedPrefixes = [
   '/publisher',
   '/calendar',
   '/history',
+  '/groups',
   '/settings',
 ];
 
