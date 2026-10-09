@@ -6,6 +6,7 @@ const protectedPrefixes = [
   '/scheduler',
   '/publisher',
   '/calendar',
+  '/history',
   '/settings',
 ];
 
