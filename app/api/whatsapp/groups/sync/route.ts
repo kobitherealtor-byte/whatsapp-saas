@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getChats } from '@/lib/green-api';
+import { assertUserRateLimit } from '@/lib/rate-limit';
 
 export async function POST() {
   try {
@@ -13,6 +14,13 @@ export async function POST() {
     if (!user) {
       return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
     }
+
+    await assertUserRateLimit({
+      userId: user.id,
+      bucket: 'whatsapp-groups-sync',
+      limit: 6,
+      windowSeconds: 10 * 60,
+    });
 
     const admin = createAdminClient();
 
@@ -87,6 +95,10 @@ export async function POST() {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'unknown_error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    const status = message === 'rate_limited' ? 429 : 500;
+    return NextResponse.json(
+      { error: message === 'rate_limited' ? 'יותר מדי בקשות. נסה שוב בעוד רגע.' : message },
+      { status },
+    );
   }
 }
