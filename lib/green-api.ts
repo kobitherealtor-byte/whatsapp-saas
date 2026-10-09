@@ -1,5 +1,12 @@
 import 'server-only';
 
+export class GreenApiInstanceNotFoundError extends Error {
+  constructor() {
+    super('green_api_instance_not_found');
+    this.name = 'GreenApiInstanceNotFoundError';
+  }
+}
+
 type CreateInstanceResponse = {
   apiTokenInstance?: string;
   apiUrl?: string;
@@ -74,6 +81,10 @@ export async function getInstanceState(input: {
     `${input.apiUrl.replace(/\/$/, '')}/waInstance${input.idInstance}/getStateInstance/${input.apiTokenInstance}`,
     { cache: 'no-store' },
   );
+
+  if (response.status === 404) {
+    throw new GreenApiInstanceNotFoundError();
+  }
 
   if (!response.ok) {
     throw new Error('Failed to read GREEN API instance state.');
