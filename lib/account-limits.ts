@@ -31,7 +31,7 @@ export async function getAccountLimits(userId: string): Promise<AccountLimits> {
     const { data: created, error: createError } = await admin
       .from('account_limits')
       .insert({ user_id: userId })
-      .select('plan_code, billing_status, max_pending_messages, max_active_campaigns, max_groups_per_campaign, monthly_send_limit, current_period_start, current_period_end')
+      .select('plan_code, billing_status, max_pending_messages, max_active_campaigns, max_groups_per_campaign, max_broadcast_recipients, monthly_send_limit, current_period_start, current_period_end')
       .single();
 
     if (createError) throw new Error(createError.message);
