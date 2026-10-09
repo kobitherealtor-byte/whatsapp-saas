@@ -114,6 +114,12 @@ export default function PublisherClient({
                 <div>
                   <div className="font-bold">{campaign.name}</div>
                   <div className="mt-1 truncate text-xs text-slate-400">{campaign.message_body}</div>
+                  {campaign.last_error && (
+                    <div className="mt-2 rounded-lg bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-700">
+                      {campaign.prepare_fail_count >= 3 ? 'הושהה אוטומטית: ' : 'דורש תשומת לב: '}
+                      {campaign.last_error}
+                    </div>
+                  )}
                   {stats && (
                     <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-bold">
                       <span className="text-emerald-700">נשלחו {stats.sent}</span>
