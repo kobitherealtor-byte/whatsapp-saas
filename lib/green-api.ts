@@ -292,3 +292,32 @@ export async function logoutGreenApiInstance(input: {
 
   return true;
 }
+
+
+export async function rebootGreenApiInstance(input: {
+  apiUrl: string;
+  idInstance: string;
+  apiTokenInstance: string;
+}) {
+  const response = await fetch(
+    `${input.apiUrl.replace(/\/$/, '')}/waInstance${input.idInstance}/reboot/${input.apiTokenInstance}`,
+    { method: 'GET', cache: 'no-store' },
+  );
+
+  const raw = await response.text();
+  let data: { isReboot?: boolean; message?: string } = {};
+
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch {
+    data = { message: raw };
+  }
+
+  if (!response.ok || data.isReboot !== true) {
+    throw new Error(
+      data.message || `GREEN API reboot failed with HTTP ${response.status}`,
+    );
+  }
+
+  return true;
+}
