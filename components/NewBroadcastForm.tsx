@@ -122,11 +122,7 @@ export default function NewBroadcastForm() {
         scheduledAt = new Date(Date.now() + 30_000).toISOString();
       } else {
         if (!date || !time) throw new Error('בחר תאריך ושעת שליחה.');
-        const localDate = new Date(`${date}T${time}`);
-        if (Number.isNaN(localDate.getTime())) {
-          throw new Error('תאריך או שעה אינם תקינים.');
-        }
-        scheduledAt = localDate.toISOString();
+        scheduledAt = `${date}T${time}`;
       }
 
       const result = await createBroadcastCampaign({
