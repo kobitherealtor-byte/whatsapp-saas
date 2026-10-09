@@ -16,6 +16,8 @@ export type AccountLimits = {
 export async function getAccountLimits(userId: string): Promise<AccountLimits> {
   const admin = createAdminClient();
 
+  await admin.rpc('refresh_account_period', { p_user_id: userId });
+
   const { data: existing, error: existingError } = await admin
     .from('account_limits')
     .select('plan_code, billing_status, max_pending_messages, max_active_campaigns, max_groups_per_campaign, monthly_send_limit, current_period_start, current_period_end')
