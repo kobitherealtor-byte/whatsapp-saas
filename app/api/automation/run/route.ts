@@ -100,7 +100,7 @@ export async function POST(request: Request) {
     const personalClaim = await postJson<{ jobs: PersonalJob[] }>(
       `${origin}/api/automation/messages/claim`,
       secret,
-      { limit: body.personalLimit ?? 25 },
+      { limit: body.personalLimit ?? 10 },
     );
 
     let personalSent = 0;
@@ -150,8 +150,8 @@ export async function POST(request: Request) {
       `${origin}/api/automation/campaigns/claim`,
       secret,
       {
-        campaignLimit: body.campaignLimit ?? 10,
-        dispatchLimit: body.groupLimit ?? 50,
+        campaignLimit: body.campaignLimit ?? 5,
+        dispatchLimit: body.groupLimit ?? 10,
       },
     );
 
