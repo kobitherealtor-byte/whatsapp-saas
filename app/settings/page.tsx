@@ -224,11 +224,13 @@ function SettingsPageContent() {
       setStatus(data.status ?? 'creating');
       await loadStatus();
     } catch (connectError) {
-      setStatus('error');
+      setStatus('disconnected');
+      const message =
+        connectError instanceof Error ? connectError.message : 'יצירת החיבור נכשלה.';
       setError(
-        connectError instanceof Error
-          ? connectError.message
-          : 'יצירת החיבור נכשלה.',
+        message === 'לא הצלחנו ליצור את חיבור ה-WhatsApp.'
+          ? 'החיבור האוטומטי ל-WhatsApp עדיין ממתין לאישור GREEN API Partner. המערכת עצמה מוכנה, וברגע שהגישה תאושר יופיע כאן QR לסריקה.'
+          : message,
       );
     } finally {
       setBusy(false);
