@@ -229,7 +229,7 @@ export async function POST(request: Request) {
       }
 
       if (index < broadcastClaim.jobs.length - 1) {
-        await wait(Math.max(1, Math.min(job.delaySeconds || 3, 5)) * 1000);
+        await wait(Math.max(1, Math.min(job.delaySeconds || 3, 20)) * 1000);
       }
     }
 
