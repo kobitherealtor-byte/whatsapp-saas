@@ -108,11 +108,44 @@ export async function refreshAccountAlerts(userId: string) {
   const activeKeys = alerts.map((alert) => alert.key);
   const now = new Date().toISOString();
 
+  const { data: existingAlerts, error: existingAlertsError } = await admin
+    .from('account_alerts')
+    .select('id, alert_key, title, message, is_read')
+    .eq('user_id', userId);
+
+  if (existingAlertsError) throw new Error(existingAlertsError.message);
+
+  const existingByKey = new Map(
+    (existingAlerts ?? []).map((row) => [row.alert_key, row]),
+  );
+
   for (const alert of alerts) {
-    const { error } = await admin
-      .from('account_alerts')
-      .upsert(
-        {
+    const existing = existingByKey.get(alert.key);
+    const shouldResetRead =
+      !existing ||
+      existing.title !== alert.title ||
+      existing.message !== alert.message;
+
+    if (existing) {
+      const { error } = await admin
+        .from('account_alerts')
+        .update({
+          severity: alert.severity,
+          title: alert.title,
+          message: alert.message,
+          href: alert.href ?? null,
+          is_read: shouldResetRead ? false : existing.is_read,
+          resolved_at: null,
+          updated_at: now,
+        })
+        .eq('id', existing.id)
+        .eq('user_id', userId);
+
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await admin
+        .from('account_alerts')
+        .insert({
           user_id: userId,
           alert_key: alert.key,
           severity: alert.severity,
@@ -122,11 +155,10 @@ export async function refreshAccountAlerts(userId: string) {
           is_read: false,
           resolved_at: null,
           updated_at: now,
-        },
-        { onConflict: 'user_id,alert_key' },
-      );
+        });
 
-    if (error) throw new Error(error.message);
+      if (error) throw new Error(error.message);
+    }
   }
 
   const { data: unresolved, error: unresolvedError } = await admin
