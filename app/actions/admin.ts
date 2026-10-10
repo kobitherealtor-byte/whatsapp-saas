@@ -174,3 +174,96 @@ export async function setCustomerFeatureOverrides(
     await setCustomerFeatureOverride(customerId, change.featureKey, change.mode);
   }
 }
+
+
+export async function savePlanDefinition(input: {
+  planCode: string;
+  displayName: string;
+  maxPendingMessages: number;
+  maxActiveCampaigns: number;
+  maxGroupsPerCampaign: number;
+  maxBroadcastRecipients: number;
+  monthlySendLimit: number;
+  isActive: boolean;
+  features: Partial<Record<FeatureKey, boolean>>;
+}) {
+  const { user: adminUser, admin } = await requireAdmin();
+
+  const planCode = input.planCode.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  if (!planCode) throw new Error('קוד החבילה אינו תקין.');
+  if (!input.displayName.trim()) throw new Error('שם החבילה חסר.');
+
+  const planRow = {
+    plan_code: planCode,
+    display_name: input.displayName.trim().slice(0, 80),
+    max_pending_messages: Math.max(1, Math.round(input.maxPendingMessages)),
+    max_active_campaigns: Math.max(1, Math.round(input.maxActiveCampaigns)),
+    max_groups_per_campaign: Math.max(1, Math.round(input.maxGroupsPerCampaign)),
+    max_broadcast_recipients: Math.max(1, Math.round(input.maxBroadcastRecipients)),
+    monthly_send_limit: Math.max(1, Math.round(input.monthlySendLimit)),
+    is_active: Boolean(input.isActive),
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error: planError } = await admin
+    .from('plan_catalog')
+    .upsert(planRow, { onConflict: 'plan_code' });
+
+  if (planError) throw new Error(planError.message);
+
+  const featureRows = FEATURE_KEYS.map((featureKey) => ({
+    plan_code: planCode,
+    feature_key: featureKey,
+    enabled: Boolean(input.features[featureKey]),
+    updated_at: new Date().toISOString(),
+  }));
+
+  const { error: featureError } = await admin
+    .from('plan_features')
+    .upsert(featureRows, { onConflict: 'plan_code,feature_key' });
+
+  if (featureError) throw new Error(featureError.message);
+
+  await writeAuditEvent({
+    userId: adminUser.id,
+    eventType: 'admin.plan.saved',
+    entityType: 'plan_catalog',
+    entityId: planCode,
+    metadata: {
+      planCode,
+      isActive: planRow.is_active,
+      enabledFeatures: FEATURE_KEYS.filter((key) => Boolean(input.features[key])),
+    },
+  });
+
+  revalidatePath('/admin/plans');
+  revalidatePath('/admin');
+}
+
+export async function applyCustomerPlan(
+  customerId: string,
+  planCode: string,
+  billingStatus: 'beta' | 'trialing' | 'active' | 'past_due' | 'cancelled',
+) {
+  const { user: adminUser, admin } = await requireAdmin();
+
+  const { error } = await admin.rpc('apply_plan_to_account', {
+    p_user_id: customerId,
+    p_plan_code: planCode,
+    p_billing_status: billingStatus,
+  });
+
+  if (error) throw new Error(error.message);
+
+  await writeAuditEvent({
+    userId: adminUser.id,
+    eventType: 'admin.customer_plan.applied',
+    entityType: 'account_limits',
+    entityId: customerId,
+    metadata: { customerId, planCode, billingStatus },
+  });
+
+  revalidatePath('/admin');
+  revalidatePath(`/admin/${customerId}`);
+  revalidatePath('/billing');
+}
