@@ -96,12 +96,10 @@ export async function setGreenApiSettings(input: {
     outgoingAPIMessageWebhook: 'yes',
     incomingWebhook: 'yes',
     stateWebhook: 'yes',
-    statusInstanceWebhook: 'yes',
     pollMessageWebhook: 'yes',
     incomingCallWebhook: 'yes',
     editedMessageWebhook: 'no',
     deletedMessageWebhook: 'no',
-    enableMessagesHistory: 'yes',
     keepOnlineStatus: 'no',
   };
 
