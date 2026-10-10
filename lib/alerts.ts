@@ -1,0 +1,168 @@
+import 'server-only';
+
+import { createAdminClient } from '@/lib/supabase/admin';
+import { getAccountLimits, getAccountUsage } from '@/lib/account-limits';
+
+type AlertInput = {
+  key: string;
+  severity: 'info' | 'warning' | 'critical';
+  title: string;
+  message: string;
+  href?: string | null;
+};
+
+export async function refreshAccountAlerts(userId: string) {
+  const admin = createAdminClient();
+  const [limits, usage, connectionResult, failedResult] = await Promise.all([
+    getAccountLimits(userId),
+    getAccountUsage(userId),
+    admin
+      .from('whatsapp_connections')
+      .select('status, last_error')
+      .eq('user_id', userId)
+      .maybeSingle(),
+    admin
+      .from('send_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'failed')
+      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
+  ]);
+
+  if (connectionResult.error) throw new Error(connectionResult.error.message);
+  if (failedResult.error) throw new Error(failedResult.error.message);
+
+  const alerts: AlertInput[] = [];
+
+  if (connectionResult.data?.status !== 'connected') {
+    alerts.push({
+      key: 'whatsapp_disconnected',
+      severity: 'critical',
+      title: 'WhatsApp לא מחובר',
+      message:
+        connectionResult.data?.last_error ||
+        'צריך לחבר מחדש את WhatsApp כדי שהשליחות יוכלו לצאת.',
+      href: '/settings',
+    });
+  }
+
+  if (limits.billingStatus === 'past_due') {
+    alerts.push({
+      key: 'billing_past_due',
+      severity: 'critical',
+      title: 'נדרש טיפול בתשלום',
+      message: 'השליחות נעצרו עד להסדרת מצב החיוב.',
+      href: '/billing',
+    });
+  } else if (limits.billingStatus === 'cancelled') {
+    alerts.push({
+      key: 'billing_cancelled',
+      severity: 'critical',
+      title: 'החשבון אינו פעיל',
+      message: 'החבילה בוטלה והשליחות חסומות.',
+      href: '/billing',
+    });
+  }
+
+  const usageRatio =
+    usage.sentThisPeriod / Math.max(1, limits.monthlySendLimit);
+
+  if (usageRatio >= 1) {
+    alerts.push({
+      key: 'monthly_limit_reached',
+      severity: 'critical',
+      title: 'מגבלת השליחות נוצלה',
+      message:
+        'נשלחו ' +
+        usage.sentThisPeriod +
+        ' מתוך ' +
+        limits.monthlySendLimit +
+        ' שליחות בתקופה הנוכחית.',
+      href: '/billing',
+    });
+  } else if (usageRatio >= 0.8) {
+    alerts.push({
+      key: 'monthly_limit_80',
+      severity: 'warning',
+      title: 'מתקרבים למגבלת השליחות',
+      message:
+        'נוצלו ' +
+        Math.round(usageRatio * 100) +
+        '% ממכסת השליחות החודשית.',
+      href: '/billing',
+    });
+  }
+
+  if ((failedResult.count ?? 0) > 0) {
+    alerts.push({
+      key: 'failed_sends_24h',
+      severity: 'warning',
+      title: 'יש שליחות שנכשלו',
+      message:
+        String(failedResult.count ?? 0) +
+        ' שליחות נכשלו ב-24 השעות האחרונות.',
+      href: '/history',
+    });
+  }
+
+  const activeKeys = alerts.map((alert) => alert.key);
+  const now = new Date().toISOString();
+
+  for (const alert of alerts) {
+    const { error } = await admin
+      .from('account_alerts')
+      .upsert(
+        {
+          user_id: userId,
+          alert_key: alert.key,
+          severity: alert.severity,
+          title: alert.title,
+          message: alert.message,
+          href: alert.href ?? null,
+          is_read: false,
+          resolved_at: null,
+          updated_at: now,
+        },
+        { onConflict: 'user_id,alert_key' },
+      );
+
+    if (error) throw new Error(error.message);
+  }
+
+  const { data: unresolved, error: unresolvedError } = await admin
+    .from('account_alerts')
+    .select('id, alert_key')
+    .eq('user_id', userId)
+    .is('resolved_at', null);
+
+  if (unresolvedError) throw new Error(unresolvedError.message);
+
+  const staleIds = (unresolved ?? [])
+    .filter((row) => !activeKeys.includes(row.alert_key))
+    .map((row) => row.id);
+
+  if (staleIds.length > 0) {
+    const { error: resolveError } = await admin
+      .from('account_alerts')
+      .update({ resolved_at: now, updated_at: now })
+      .in('id', staleIds)
+      .eq('user_id', userId);
+
+    if (resolveError) throw new Error(resolveError.message);
+  }
+}
+
+export async function getAccountAlerts(userId: string) {
+  const admin = createAdminClient();
+
+  const { data, error } = await admin
+    .from('account_alerts')
+    .select('id, alert_key, severity, title, message, href, is_read, created_at, updated_at')
+    .eq('user_id', userId)
+    .is('resolved_at', null)
+    .order('updated_at', { ascending: false })
+    .limit(20);
+
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
