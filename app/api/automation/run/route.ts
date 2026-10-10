@@ -285,6 +285,16 @@ export async function POST(request: Request) {
       }
     }
 
+    try {
+      await postJson(
+        `${origin}/api/automation/maintenance/media-cleanup`,
+        secret,
+        {},
+      );
+    } catch {
+      // Maintenance must never turn a successful send run into a failed run.
+    }
+
     const nextRunAt = await getNextAutomationRunAt();
     const durationMs = Date.now() - startedAt;
 
