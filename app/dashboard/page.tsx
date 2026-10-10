@@ -24,9 +24,15 @@ export default async function Dashboard() {
             <p className="mt-2 text-slate-500">כל מה שמתוזמן, פעיל או דורש תשומת לב — במקום אחד.</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href="/scheduler/new" className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-700">+ הודעה חדשה</Link>
-            <Link href="/publisher/new" className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800">+ קמפיין קבוצות</Link>
-            <Link href="/broadcasts/new" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-800 hover:bg-emerald-100">+ קמפיין תפוצה</Link>
+            {data.features.scheduler && (
+              <Link href="/scheduler/new" className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-700">+ הודעה חדשה</Link>
+            )}
+            {data.features.group_publisher && (
+              <Link href="/publisher/new" className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800">+ קמפיין קבוצות</Link>
+            )}
+            {data.features.broadcasts && (
+              <Link href="/broadcasts/new" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-800 hover:bg-emerald-100">+ קמפיין תפוצה</Link>
+            )}
             <Link href="/onboarding" className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">הקמת חשבון</Link>
             <Link href="/system-status" className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">מצב מערכת</Link>
           </div>
