@@ -129,7 +129,8 @@ export async function setCustomerFeatureOverride(
       .from('account_feature_overrides')
       .delete()
       .eq('user_id', customerId)
-      .eq('feature_key', featureKey);
+      .eq('feature_key', featureKey)
+      .eq('source', 'admin');
 
     if (error) throw new Error(error.message);
   } else {
@@ -143,7 +144,7 @@ export async function setCustomerFeatureOverride(
           source: 'admin',
           updated_at: new Date().toISOString(),
         },
-        { onConflict: 'user_id,feature_key' },
+        { onConflict: 'user_id,feature_key,source' },
       );
 
     if (error) throw new Error(error.message);
