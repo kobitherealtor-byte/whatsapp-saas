@@ -33,6 +33,9 @@ export default async function AdminPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <Link href="/admin/readiness" className="text-sm font-bold text-emerald-700 hover:underline">
+              Launch Readiness
+            </Link>
             <Link href="/admin/plans" className="text-sm font-bold text-emerald-700 hover:underline">
               חבילות ופיצ׳רים
             </Link>
