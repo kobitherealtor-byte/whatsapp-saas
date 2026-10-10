@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin';
 import { writeAuditEvent } from '@/lib/audit';
+import { FEATURE_KEYS, type FeatureKey } from '@/lib/features';
 
 const allowedStatuses = new Set([
   'beta',
@@ -109,4 +110,66 @@ export async function setCustomerSuspended(
 
   revalidatePath('/admin');
   revalidatePath(`/admin/${customerId}`);
+}
+
+
+export async function setCustomerFeatureOverride(
+  customerId: string,
+  featureKey: FeatureKey,
+  mode: 'inherit' | 'enabled' | 'disabled',
+) {
+  const { user: adminUser, admin } = await requireAdmin();
+
+  if (!FEATURE_KEYS.includes(featureKey)) {
+    throw new Error('פיצ׳ר לא תקין.');
+  }
+
+  if (mode === 'inherit') {
+    const { error } = await admin
+      .from('account_feature_overrides')
+      .delete()
+      .eq('user_id', customerId)
+      .eq('feature_key', featureKey);
+
+    if (error) throw new Error(error.message);
+  } else {
+    const { error } = await admin
+      .from('account_feature_overrides')
+      .upsert(
+        {
+          user_id: customerId,
+          feature_key: featureKey,
+          enabled: mode === 'enabled',
+          source: 'admin',
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,feature_key' },
+      );
+
+    if (error) throw new Error(error.message);
+  }
+
+  await writeAuditEvent({
+    userId: adminUser.id,
+    eventType: 'admin.customer_feature.changed',
+    entityType: 'account_feature_override',
+    entityId: customerId,
+    metadata: { customerId, featureKey, mode },
+  });
+
+  revalidatePath('/admin');
+  revalidatePath(`/admin/${customerId}`);
+  revalidatePath('/billing');
+}
+
+export async function setCustomerFeatureOverrides(
+  customerId: string,
+  changes: Array<{
+    featureKey: FeatureKey;
+    mode: 'inherit' | 'enabled' | 'disabled';
+  }>,
+) {
+  for (const change of changes) {
+    await setCustomerFeatureOverride(customerId, change.featureKey, change.mode);
+  }
 }
