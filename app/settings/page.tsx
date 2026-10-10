@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AppShell from '@/components/AppShell';
 
@@ -18,7 +18,7 @@ type StatusPayload = {
   error?: string;
 };
 
-export default function SettingsPage() {
+function SettingsPageContent() {
   const searchParams = useSearchParams();
   const autoConnectStarted = useRef(false);
   const [status, setStatus] = useState<ConnectionStatus>('creating');
@@ -424,5 +424,14 @@ export default function SettingsPage() {
         </section>
       </div>
     </AppShell>
+  );
+}
+
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-sm text-slate-500">טוען חיבור WhatsApp...</div>}>
+      <SettingsPageContent />
+    </Suspense>
   );
 }
