@@ -64,12 +64,80 @@ export async function createPartnerInstance(name: string) {
     throw new Error(data.description || 'GREEN API instance creation failed.');
   }
 
-  return {
+  const instance = {
     idInstance: String(data.idInstance),
     apiTokenInstance: data.apiTokenInstance,
     apiUrl: data.apiUrl.replace(/\/$/, ''),
     mediaUrl: data.mediaUrl ?? null,
   };
+
+  await setGreenApiSettings({
+    ...instance,
+    webhookUrl: process.env.GREEN_API_WEBHOOK_URL?.trim() || null,
+    webhookToken: process.env.GREEN_API_WEBHOOK_TOKEN?.trim() || null,
+  });
+
+  return instance;
+}
+
+export async function setGreenApiSettings(input: {
+  apiUrl: string;
+  idInstance: string;
+  apiTokenInstance: string;
+  webhookUrl?: string | null;
+  webhookToken?: string | null;
+}) {
+  const body: Record<string, string | number> = {
+    delaySendMessagesMilliseconds: 3000,
+    markIncomingMessagesReaded: 'no',
+    markIncomingMessagesReadedOnReply: 'yes',
+    outgoingWebhook: 'yes',
+    outgoingMessageWebhook: 'yes',
+    outgoingAPIMessageWebhook: 'yes',
+    incomingWebhook: 'yes',
+    stateWebhook: 'yes',
+    statusInstanceWebhook: 'yes',
+    pollMessageWebhook: 'yes',
+    incomingCallWebhook: 'yes',
+    editedMessageWebhook: 'no',
+    deletedMessageWebhook: 'no',
+    enableMessagesHistory: 'yes',
+    keepOnlineStatus: 'no',
+  };
+
+  if (input.webhookUrl) {
+    body.webhookUrl = input.webhookUrl;
+    body.webhookUrlToken = input.webhookToken
+      ? `Bearer ${input.webhookToken}`
+      : '';
+  }
+
+  const response = await fetch(
+    `${input.apiUrl.replace(/\/$/, '')}/waInstance${input.idInstance}/setSettings/${input.apiTokenInstance}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      body: JSON.stringify(body),
+    },
+  );
+
+  const raw = await response.text();
+  let data: { saveSettings?: boolean; message?: string } = {};
+
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch {
+    data = { message: raw };
+  }
+
+  if (!response.ok || data.saveSettings === false) {
+    throw new Error(
+      data.message || `GREEN API setSettings failed with HTTP ${response.status}`,
+    );
+  }
+
+  return true;
 }
 
 export async function getInstanceState(input: {
