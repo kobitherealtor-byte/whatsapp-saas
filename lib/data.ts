@@ -3,6 +3,7 @@ import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getAccountAlerts, refreshAccountAlerts } from '@/lib/alerts';
+import { getFeatureEntitlements } from '@/lib/features';
 
 export type ScheduledMessageRow = {
   id: string;
@@ -93,6 +94,7 @@ export async function getWhatsAppGroups() {
 export async function getDashboardData() {
   const { supabase, user } = await getAuthedClient();
   await refreshAccountAlerts(user.id);
+  const entitlements = await getFeatureEntitlements(user.id);
   const admin = createAdminClient();
   const nowIso = new Date().toISOString();
   const next24hIso = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
@@ -186,6 +188,9 @@ export async function getDashboardData() {
       (failedBroadcastsCountResult.count ?? 0),
     businessName: profileResult.data?.business_name ?? null,
     alerts: await getAccountAlerts(user.id),
+    features: Object.fromEntries(
+      Object.entries(entitlements).map(([key, value]) => [key, value.enabled]),
+    ),
   };
 }
 
