@@ -46,6 +46,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'צריך לכתוב הודעה או לצרף קובץ.' }, { status: 400 });
     }
 
+    if (mediaUrl) {
+      await assertFeatureEnabled(user.id, 'media_upload');
+    }
+
     const admin = createAdminClient();
     const { data: credential, error } = await admin
       .from('green_api_credentials')
