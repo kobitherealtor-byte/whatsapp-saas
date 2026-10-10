@@ -326,6 +326,9 @@ export default function NewBroadcastForm() {
             rows={6}
             className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-emerald-500"
           />
+          <span className="mt-2 block text-xs font-normal text-slate-500">
+            אפשר להשתמש ב-{'{{name}}'} או {'{{שם}}'} כדי לשלב אוטומטית את שם הנמען.
+          </span>
         </label>
 
         <div className="mt-4">
