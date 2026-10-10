@@ -13,7 +13,14 @@ type AlertInput = {
 
 export async function refreshAccountAlerts(userId: string) {
   const admin = createAdminClient();
-  const [limits, usage, connectionResult, failedResult] = await Promise.all([
+  const [
+    limits,
+    usage,
+    connectionResult,
+    failedResult,
+    pausedCampaignsResult,
+    broadcastErrorsResult,
+  ] = await Promise.all([
     getAccountLimits(userId),
     getAccountUsage(userId),
     admin
@@ -27,10 +34,26 @@ export async function refreshAccountAlerts(userId: string) {
       .eq('user_id', userId)
       .eq('status', 'failed')
       .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
+    admin
+      .from('group_campaigns')
+      .select('id, name, last_error')
+      .eq('user_id', userId)
+      .eq('status', 'paused')
+      .not('last_error', 'is', null)
+      .limit(10),
+    admin
+      .from('broadcast_campaigns')
+      .select('id, name, last_error')
+      .eq('user_id', userId)
+      .not('last_error', 'is', null)
+      .in('status', ['active', 'paused'])
+      .limit(10),
   ]);
 
   if (connectionResult.error) throw new Error(connectionResult.error.message);
   if (failedResult.error) throw new Error(failedResult.error.message);
+  if (pausedCampaignsResult.error) throw new Error(pausedCampaignsResult.error.message);
+  if (broadcastErrorsResult.error) throw new Error(broadcastErrorsResult.error.message);
 
   const alerts: AlertInput[] = [];
 
@@ -102,6 +125,30 @@ export async function refreshAccountAlerts(userId: string) {
         String(failedResult.count ?? 0) +
         ' שליחות נכשלו ב-24 השעות האחרונות.',
       href: '/history',
+    });
+  }
+
+  if ((pausedCampaignsResult.data ?? []).length > 0) {
+    alerts.push({
+      key: 'paused_campaign_errors',
+      severity: 'warning',
+      title: 'קמפיין קבוצות הושהה אחרי תקלות',
+      message:
+        String(pausedCampaignsResult.data?.length ?? 0) +
+        ' קמפיינים דורשים בדיקה לפני הפעלה מחדש.',
+      href: '/publisher',
+    });
+  }
+
+  if ((broadcastErrorsResult.data ?? []).length > 0) {
+    alerts.push({
+      key: 'broadcast_campaign_errors',
+      severity: 'warning',
+      title: 'קמפיין תפוצה דורש טיפול',
+      message:
+        String(broadcastErrorsResult.data?.length ?? 0) +
+        ' קמפייני תפוצה כוללים שגיאה אחרונה.',
+      href: '/broadcasts',
     });
   }
 
