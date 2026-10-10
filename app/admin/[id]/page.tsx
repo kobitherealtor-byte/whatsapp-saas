@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import AppShell from '@/components/AppShell';
 import AdminCustomerControls from '@/components/AdminCustomerControls';
+import AdminFeatureControls from '@/components/AdminFeatureControls';
 import { getAdminCustomerDetail } from '@/lib/admin';
 
 function formatDate(value: string | null) {
@@ -96,6 +97,13 @@ export default async function AdminCustomerPage({
               )}
             </div>
           </section>
+        </div>
+
+        <div className="mt-5">
+          <AdminFeatureControls
+            customerId={data.customer.id}
+            entitlements={data.entitlements}
+          />
         </div>
 
         <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
