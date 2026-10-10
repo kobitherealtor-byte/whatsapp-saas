@@ -10,7 +10,7 @@ function friendlyAuthError(message: string) {
   if (normalized.includes('invalid login credentials')) return 'האימייל או הסיסמה אינם נכונים.';
   if (normalized.includes('email not confirmed')) return 'צריך לאשר את כתובת האימייל לפני ההתחברות.';
   if (normalized.includes('user already registered')) return 'כבר קיים חשבון עם כתובת האימייל הזאת.';
-  if (normalized.includes('password')) return 'הסיסמה צריכה להכיל לפחות 6 תווים.';
+  if (normalized.includes('password')) return 'הסיסמה צריכה להכיל לפחות 8 תווים.';
   return message;
 }
 
@@ -64,6 +64,11 @@ export default function LoginPage() {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+            data: {
+              terms_accepted_at: new Date().toISOString(),
+              terms_version: '2026-10-10',
+              privacy_version: '2026-10-10',
+            },
           },
         });
 
@@ -146,7 +151,7 @@ export default function LoginPage() {
                   type="password"
                   autoComplete={isRegister ? 'new-password' : 'current-password'}
                   required
-                  minLength={6}
+                  minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
