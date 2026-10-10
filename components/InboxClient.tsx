@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import MediaUpload from '@/components/MediaUpload';
+import { createClient } from '@/lib/supabase/client';
 
 type Chat = {
   id: string;
@@ -124,6 +125,78 @@ export default function InboxClient({
       void loadHistory(selectedChat);
     }
   }, [selectedChat?.id, mode]);
+
+  useEffect(() => {
+    if (mode !== 'native') return;
+
+    const supabase = createClient();
+    let active = true;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    void supabase.auth.getUser().then(({ data }) => {
+      const userId = data.user?.id;
+      if (!active || !userId) return;
+
+      channel = supabase
+        .channel('native-inbox-' + userId)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'inbox_messages',
+            filter: 'user_id=eq.' + userId,
+          },
+          (payload) => {
+            const row = payload.new as {
+              id?: string;
+              id_message?: string;
+              direction?: string;
+              chat_id?: string | null;
+              sender_id?: string | null;
+              sender_name?: string | null;
+              text_body?: string | null;
+              media_url?: string | null;
+              status_message?: string | null;
+              event_timestamp?: string | null;
+            };
+
+            void loadChats();
+
+            if (!selectedChat || row.chat_id !== selectedChat.id) return;
+
+            const id = row.id_message || row.id || crypto.randomUUID();
+            const timestamp = row.event_timestamp
+              ? Math.floor(new Date(row.event_timestamp).getTime() / 1000)
+              : Math.floor(Date.now() / 1000);
+
+            setMessages((current) => {
+              if (current.some((item) => item.id === id)) return current;
+
+              return [
+                ...current,
+                {
+                  id,
+                  timestamp,
+                  type: row.direction || 'incoming',
+                  senderId: row.sender_id || null,
+                  senderName: row.sender_name || null,
+                  text: row.text_body || '',
+                  downloadUrl: row.media_url || null,
+                  status: row.status_message || null,
+                },
+              ].sort((a, b) => a.timestamp - b.timestamp);
+            });
+          },
+        )
+        .subscribe();
+    });
+
+    return () => {
+      active = false;
+      if (channel) void supabase.removeChannel(channel);
+    };
+  }, [mode, selectedChat?.id]);
 
   const send = async () => {
     if (!selectedChat || (!message.trim() && !mediaUrl)) return;
