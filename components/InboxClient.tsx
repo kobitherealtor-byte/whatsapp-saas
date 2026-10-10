@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import MediaUpload from '@/components/MediaUpload';
 import { createClient } from '@/lib/supabase/client';
