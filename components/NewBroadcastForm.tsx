@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import MediaUpload from '@/components/MediaUpload';
 import { createBroadcastCampaign } from '@/app/actions/broadcasts';
+import { createClient } from '@/lib/supabase/client';
 
 type Recipient = {
   name?: string;
@@ -88,6 +89,7 @@ export default function NewBroadcastForm() {
   const [intervalSeconds, setIntervalSeconds] = useState(3);
   const [loading, setLoading] = useState(false);
   const [fileName, setFileName] = useState('');
+  const [importingFile, setImportingFile] = useState(false);
   const [error, setError] = useState('');
 
   const parsed = useMemo(
@@ -97,14 +99,56 @@ export default function NewBroadcastForm() {
 
   const importFile = async (file: File) => {
     setError('');
-    if (!/\.(csv|txt)$/i.test(file.name)) {
-      setError('כרגע הייבוא הישיר תומך בקובצי CSV או TXT.');
-      return;
-    }
+    setImportingFile(true);
 
-    const text = await file.text();
-    setRecipientsText(text);
-    setFileName(file.name);
+    try {
+      if (/\.(csv|txt)$/i.test(file.name)) {
+        const text = await file.text();
+        setRecipientsText(text);
+        setFileName(file.name);
+        return;
+      }
+
+      if (/\.xlsx$/i.test(file.name)) {
+        const supabase = createClient();
+        const form = new FormData();
+        form.append('file', file);
+
+        const { data, error: functionError } = await supabase.functions.invoke(
+          'parse-broadcast-xlsx',
+          { body: form },
+        );
+
+        if (functionError) throw functionError;
+
+        const rows = (data?.rows ?? []) as Array<{ name?: string; phone: string }>;
+        if (!rows.length) {
+          throw new Error('לא נמצאו מספרי טלפון תקינים בקובץ ה-Excel.');
+        }
+
+        setRecipientsText(
+          rows
+            .map((row) =>
+              row.name?.trim()
+                ? `${row.name.trim()}, ${row.phone}`
+                : row.phone,
+            )
+            .join('\n'),
+        );
+        setFileName(file.name);
+        return;
+      }
+
+      throw new Error('אפשר לייבא קובצי XLSX, CSV או TXT.');
+    } catch (importError) {
+      setError(
+        importError instanceof Error
+          ? importError.message
+          : 'ייבוא הקובץ נכשל.',
+      );
+    } finally {
+      setImportingFile(false);
+    }
   };
 
   const submit = async (event: React.FormEvent) => {
@@ -163,11 +207,12 @@ export default function NewBroadcastForm() {
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <label className="cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">
-            העלה CSV / TXT
+            {importingFile ? 'מייבא...' : 'העלה Excel / CSV / TXT'}
             <input
               type="file"
-              accept=".csv,.txt,text/csv,text/plain"
+              accept=".xlsx,.csv,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/plain"
               className="hidden"
+              disabled={importingFile}
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 if (file) void importFile(file);
@@ -189,6 +234,48 @@ export default function NewBroadcastForm() {
           placeholder={'0541234567\nיוסי כהן, 0521234567\nשרון; 0501234567'}
           className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 font-mono text-sm outline-none focus:border-emerald-500"
         />
+
+        {parsed.valid.length > 0 && (
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="text-sm font-black">תצוגה מקדימה</div>
+              <div className="text-xs text-slate-400">
+                מציג עד 20 נמענים ראשונים
+              </div>
+            </div>
+            <div className="space-y-2">
+              {parsed.valid.slice(0, 20).map((recipient, index) => (
+                <div
+                  key={`${recipient.phone}-${index}`}
+                  className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm"
+                >
+                  <div className="min-w-0">
+                    <div className="truncate font-bold">
+                      {recipient.name || 'ללא שם'}
+                    </div>
+                    <div className="text-xs text-slate-400">{recipient.phone}</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const normalizedTarget = recipient.phone.replace(/\D/g, '');
+                      const lines = recipientsText.split(/\r?\n/);
+                      const next = lines.filter((line) => {
+                        const parsedLine = splitLine(line);
+                        if (!parsedLine) return true;
+                        return parsedLine.phone.replace(/\D/g, '') !== normalizedTarget;
+                      });
+                      setRecipientsText(next.join('\n'));
+                    }}
+                    className="text-xs font-bold text-red-600 hover:text-red-800"
+                  >
+                    הסר
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-4 grid gap-3 sm:grid-cols-4">
           <div className="rounded-xl bg-slate-50 p-3">
