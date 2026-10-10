@@ -24,6 +24,7 @@ function isActive(pathname: string, href: string) {
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [features, setFeatures] = useState<Record<string, boolean> | null>(null);
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -42,6 +43,16 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   const visibleNavItems = navItems.filter(
     (item) => !item.feature || features === null || features[item.feature] !== false,
+  );
+
+  const mobilePrimaryOrder = ['/dashboard', '/scheduler', '/inbox', '/broadcasts'];
+  const mobilePrimary = mobilePrimaryOrder
+    .map((href) => visibleNavItems.find((item) => item.href === href))
+    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+    .slice(0, 4);
+
+  const mobileMoreItems = visibleNavItems.filter(
+    (item) => !mobilePrimary.some((primary) => primary.href === item.href),
   );
 
   return (
@@ -83,9 +94,36 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">{children}</main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white lg:hidden">
-        <div className="grid grid-cols-8">
-          {visibleNavItems.map((item) => (
+      {mobileMoreOpen && (
+        <div className="fixed inset-0 z-40 bg-slate-950/25 lg:hidden" onClick={() => setMobileMoreOpen(false)}>
+          <div
+            className="absolute inset-x-3 bottom-20 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-2 px-2 text-xs font-bold text-slate-400">עוד אפשרויות</div>
+            <div className="grid grid-cols-2 gap-2">
+              {mobileMoreItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMoreOpen(false)}
+                  className={`rounded-xl px-3 py-3 text-center text-sm font-bold ${
+                    isActive(pathname, item.href)
+                      ? 'bg-emerald-50 text-emerald-700'
+                      : 'bg-slate-50 text-slate-600'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white lg:hidden">
+        <div className="grid grid-cols-5">
+          {mobilePrimary.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -96,6 +134,17 @@ export default function AppShell({ children }: { children: ReactNode }) {
               {item.label}
             </Link>
           ))}
+          <button
+            type="button"
+            onClick={() => setMobileMoreOpen((open) => !open)}
+            className={`px-2 py-3 text-center text-[11px] font-semibold ${
+              mobileMoreOpen || mobileMoreItems.some((item) => isActive(pathname, item.href))
+                ? 'text-emerald-700'
+                : 'text-slate-500'
+            }`}
+          >
+            עוד
+          </button>
         </div>
       </nav>
     </div>
