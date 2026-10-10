@@ -20,6 +20,8 @@ export default function AdminCustomersClient({
   const [query, setQuery] = useState('');
   const [connectionFilter, setConnectionFilter] = useState('all');
   const [billingFilter, setBillingFilter] = useState('all');
+  const [planFilter, setPlanFilter] = useState('all');
+  const [usageFilter, setUsageFilter] = useState<'all' | 'high'>('all');
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -39,13 +41,40 @@ export default function AdminCustomersClient({
         billingFilter === 'all' ||
         customer.billingStatus === billingFilter;
 
-      return matchesQuery && matchesConnection && matchesBilling;
+      const matchesPlan =
+        planFilter === 'all' ||
+        customer.planCode === planFilter;
+
+      const usageRatio =
+        customer.sentThisPeriod / Math.max(1, customer.monthlySendLimit);
+      const matchesUsage =
+        usageFilter === 'all' || usageRatio >= 0.8;
+
+      return (
+        matchesQuery &&
+        matchesConnection &&
+        matchesBilling &&
+        matchesPlan &&
+        matchesUsage
+      );
     });
-  }, [customers, query, connectionFilter, billingFilter]);
+  }, [
+    customers,
+    query,
+    connectionFilter,
+    billingFilter,
+    planFilter,
+    usageFilter,
+  ]);
+
+  const planOptions = useMemo(
+    () => [...new Set(customers.map((customer) => customer.planCode))].sort(),
+    [customers],
+  );
 
   return (
     <>
-      <div className="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[1fr_auto_auto]">
+      <div className="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[1fr_auto_auto_auto_auto]">
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -67,6 +96,19 @@ export default function AdminCustomersClient({
         </select>
 
         <select
+          value={planFilter}
+          onChange={(event) => setPlanFilter(event.target.value)}
+          className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold"
+        >
+          <option value="all">כל החבילות</option>
+          {planOptions.map((plan) => (
+            <option key={plan} value={plan}>
+              {plan}
+            </option>
+          ))}
+        </select>
+
+        <select
           value={billingFilter}
           onChange={(event) => setBillingFilter(event.target.value)}
           className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold"
@@ -77,6 +119,17 @@ export default function AdminCustomersClient({
           <option value="active">Active</option>
           <option value="past_due">Past Due</option>
           <option value="cancelled">Cancelled</option>
+        </select>
+
+        <select
+          value={usageFilter}
+          onChange={(event) =>
+            setUsageFilter(event.target.value as 'all' | 'high')
+          }
+          className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold"
+        >
+          <option value="all">כל רמות השימוש</option>
+          <option value="high">80%+ מהמכסה</option>
         </select>
       </div>
 
