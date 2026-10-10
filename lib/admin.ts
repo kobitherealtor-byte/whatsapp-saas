@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { getFeatureEntitlements } from '@/lib/features';
 
 export async function requireAdmin() {
   const supabase = await createClient();
@@ -263,6 +264,8 @@ export async function getAdminCustomerDetail(customerId: string) {
 
   const limits = limitsResult.data;
 
+  const entitlements = await getFeatureEntitlements(customerId);
+
   return {
     customer: {
       id: customerId,
@@ -290,5 +293,6 @@ export async function getAdminCustomerDetail(customerId: string) {
     },
     recentLogs: recentLogsResult.data ?? [],
     recentAudit: recentAuditResult.data ?? [],
+    entitlements,
   };
 }
