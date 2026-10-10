@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -54,6 +55,10 @@ export default function LoginPage() {
       const supabase = createClient();
 
       if (isRegister) {
+        if (!acceptedTerms) {
+          throw new Error('צריך לאשר את תנאי השימוש ומדיניות הפרטיות.');
+        }
+
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
@@ -156,6 +161,28 @@ export default function LoginPage() {
                     שכחת סיסמה?
                   </Link>
                 </div>
+              )}
+
+              {isRegister && (
+                <label className="flex items-start gap-3 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">
+                  <input
+                    type="checkbox"
+                    required
+                    checked={acceptedTerms}
+                    onChange={(event) => setAcceptedTerms(event.target.checked)}
+                    className="mt-1"
+                  />
+                  <span>
+                    אני מאשר/ת את{' '}
+                    <Link href="/terms" className="font-bold text-emerald-700 hover:underline">
+                      תנאי השימוש
+                    </Link>{' '}
+                    ואת{' '}
+                    <Link href="/privacy" className="font-bold text-emerald-700 hover:underline">
+                      מדיניות הפרטיות
+                    </Link>.
+                  </span>
+                </label>
               )}
 
               <button
