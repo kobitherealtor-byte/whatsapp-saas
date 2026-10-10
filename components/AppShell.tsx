@@ -13,6 +13,7 @@ const navItems = [
   { href: '/inbox', label: 'Inbox', feature: 'inbox' },
   { href: '/calendar', label: 'יומן' },
   { href: '/history', label: 'היסטוריה' },
+  { href: '/alerts', label: 'התראות' },
   { href: '/settings', label: 'הגדרות' },
 ];
 
