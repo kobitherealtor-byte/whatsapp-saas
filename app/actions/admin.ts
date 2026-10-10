@@ -312,7 +312,7 @@ export async function simulateBillingEvent(input: {
   });
 
   revalidatePath('/admin');
-  revalidatePath(\`/admin/\${input.customerId}\`);
+  revalidatePath(`/admin/${input.customerId}`);
   revalidatePath('/billing');
 
   return { eventId };
