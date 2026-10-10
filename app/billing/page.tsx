@@ -2,6 +2,8 @@ import Link from 'next/link';
 import AppShell from '@/components/AppShell';
 import { createClient } from '@/lib/supabase/server';
 import { getAccountLimits, getAccountUsage } from '@/lib/account-limits';
+import { getFeatureEntitlements } from '@/lib/features';
+import { FEATURE_KEYS, FEATURE_LABELS } from '@/lib/feature-definitions';
 
 export default async function BillingPage() {
   const supabase = await createClient();
@@ -11,9 +13,10 @@ export default async function BillingPage() {
 
   if (!user) return null;
 
-  const [limits, usage] = await Promise.all([
+  const [limits, usage, entitlements] = await Promise.all([
     getAccountLimits(user.id),
     getAccountUsage(user.id),
+    getFeatureEntitlements(user.id),
   ]);
 
   const sentPercent = Math.min(
@@ -88,6 +91,34 @@ export default async function BillingPage() {
               <div className="mt-1 text-sm text-slate-500">{label}</div>
             </div>
           ))}
+        </section>
+
+        <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-black">מה פעיל בחשבון</h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {FEATURE_KEYS.map((key) => {
+              const feature = entitlements[key];
+              return (
+                <div key={key} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-4">
+                  <div>
+                    <div className="font-bold">{FEATURE_LABELS[key]}</div>
+                    <div className="mt-1 text-xs text-slate-400">
+                      {feature.source === 'plan'
+                        ? 'לפי החבילה'
+                        : feature.source === 'billing'
+                          ? 'תוספת שנרכשה'
+                          : feature.source === 'admin'
+                            ? 'הוגדר ידנית'
+                            : 'הגדרת מערכת'}
+                    </div>
+                  </div>
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${feature.enabled ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
+                    {feature.enabled ? 'פעיל' : 'לא כלול'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </section>
 
         <section className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5">
