@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { sendGreenApiFileByUrl, sendGreenApiText } from '@/lib/green-api';
 import { assertUserRateLimit } from '@/lib/rate-limit';
 import { safeUserApiError } from '@/lib/api-error';
+import { assertFeatureEnabled } from '@/lib/features';
 import { assertAccountOperational } from '@/lib/account-limits';
 import { writeAuditEvent } from '@/lib/audit';
 
@@ -17,6 +18,8 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: 'צריך להתחבר מחדש למערכת.' }, { status: 401 });
     }
+
+    await assertFeatureEnabled(user.id, 'inbox');
 
     await assertAccountOperational(user.id);
     await assertUserRateLimit({
