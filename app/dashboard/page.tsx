@@ -1,102 +1,151 @@
-'use client';
-
-import React from 'react';
 import Link from 'next/link';
+import AppShell from '@/components/AppShell';
+import { getDashboardData } from '@/lib/data';
 
-export default function Dashboard() {
-  const stats = {
-    connectionStatus: 'מחובר',
-    phoneNumber: '050-1234567',
-    scheduledToday: 5,
-    activeCampaigns: 2,
-    failedMessages: 0,
-  };
+function formatTime(value: string) {
+  return new Intl.DateTimeFormat('he-IL', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Asia/Jerusalem',
+  }).format(new Date(value));
+}
+
+export default async function Dashboard() {
+  const data = await getDashboardData();
+  const isConnected = data.connection?.status === 'connected';
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 text-right" dir="rtl">
-      <div className="max-w-7xl mx-auto">
-        
-        {/* כותרת עליונה */}
-        <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <AppShell>
+      <div className="pb-20 lg:pb-0">
+        <header className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">לוח בקרה</h1>
-            <p className="text-gray-500 mt-1">ברוך הבא! הנה תמונת מצב של האוטומציות שלך להיום.</p>
+            <p className="text-sm font-semibold text-emerald-700">מרכז השליטה שלך ב-WhatsApp</p>
+            <h1 className="mt-1 text-3xl font-black tracking-tight">לוח בקרה</h1>
+            <p className="mt-2 text-slate-500">כל מה שמתוזמן, פעיל או דורש תשומת לב — במקום אחד.</p>
           </div>
-          
-          <div className="flex gap-3">
-            <Link href="/scheduler/new" className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 px-5 rounded-lg transition shadow-sm">
-              + תזמון הודעה אישית
-            </Link>
-            <Link href="/publisher/new" className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-5 rounded-lg transition shadow-sm">
-              + קמפיין קבוצות חדש
-            </Link>
+          <div className="flex flex-wrap gap-2">
+            {data.features.scheduler && (
+              <Link href="/scheduler/new" className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-700">+ הודעה חדשה</Link>
+            )}
+            {data.features.group_publisher && (
+              <Link href="/publisher/new" className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800">+ קמפיין קבוצות</Link>
+            )}
+            {data.features.broadcasts && (
+              <Link href="/broadcasts/new" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-800 hover:bg-emerald-100">+ קמפיין תפוצה</Link>
+            )}
+            <Link href="/onboarding" className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">הקמת חשבון</Link>
+            <Link href="/system-status" className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">מצב מערכת</Link>
           </div>
         </header>
 
-        {/* סטטוס חיבור וואטסאפ */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <span className="h-3 w-3 rounded-full bg-emerald-500"></span>
-            <p className="font-medium text-gray-700">
-              סטטוס וואטסאפ: <span className="font-bold">{stats.connectionStatus}</span>
-              <span className="text-gray-500 text-sm mr-2">({stats.phoneNumber})</span>
-            </p>
-          </div>
-          <Link href="/settings" className="text-sm text-gray-600 hover:text-gray-900 underline">
-            ניהול חיבור
-          </Link>
-        </div>
+        {data.alerts.length > 0 && (
+          <section className="mb-6 space-y-3">
+            {data.alerts.slice(0, 4).map((alert) => (
+              <Link
+                key={alert.id}
+                href={alert.href || '/alerts'}
+                className={`block rounded-2xl border p-4 shadow-sm ${
+                  alert.severity === 'critical'
+                    ? 'border-red-200 bg-red-50'
+                    : alert.severity === 'warning'
+                      ? 'border-amber-200 bg-amber-50'
+                      : 'border-sky-200 bg-sky-50'
+                }`}
+              >
+                <div className="font-black">{alert.title}</div>
+                <div className="mt-1 text-sm text-slate-600">{alert.message}</div>
+              </Link>
+            ))}
+            <Link href="/alerts" className="inline-flex text-sm font-bold text-emerald-700 hover:underline">
+              לכל ההתראות
+            </Link>
+          </section>
+        )}
 
-        {/* מדדים */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <p className="text-sm font-medium text-gray-400">הודעות מתוזמנות להיום</p>
-            <p className="text-3xl font-bold text-gray-800 mt-2">{stats.scheduledToday}</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <p className="text-sm font-medium text-gray-400">קמפיינים פעילים בקבוצות</p>
-            <p className="text-3xl font-bold text-blue-600 mt-2">{stats.activeCampaigns}</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <p className="text-sm font-medium text-gray-400">הודעות שנכשלו</p>
-            <p className={`text-3xl font-bold mt-2 ${stats.failedMessages === 0 ? 'text-gray-800' : 'text-red-500'}`}>
-              {stats.failedMessages}
-            </p>
-          </div>
-        </div>
+        {(!data.businessName || !isConnected || data.groups === 0) && (
+          <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-4">
+              <h2 className="text-lg font-extrabold">מתחילים בכמה צעדים פשוטים</h2>
+              <p className="text-sm text-slate-500">השלם את ההגדרות פעם אחת, ואחר כך העבודה היומיומית נשארת פשוטה.</p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <Link href="/account" className="rounded-xl border border-slate-200 p-4 hover:bg-slate-50">
+                <div className="text-xs font-bold text-slate-400">1</div>
+                <div className="mt-1 font-bold">{data.businessName ? '✓ פרטי העסק נשמרו' : 'הוסף שם עסק'}</div>
+              </Link>
+              <Link href="/settings" className="rounded-xl border border-slate-200 p-4 hover:bg-slate-50">
+                <div className="text-xs font-bold text-slate-400">2</div>
+                <div className="mt-1 font-bold">{isConnected ? '✓ WhatsApp מחובר' : 'חבר WhatsApp'}</div>
+              </Link>
+              <Link href="/groups" className="rounded-xl border border-slate-200 p-4 hover:bg-slate-50">
+                <div className="text-xs font-bold text-slate-400">3</div>
+                <div className="mt-1 font-bold">{data.groups > 0 ? `✓ ${data.groups} קבוצות זמינות` : 'סנכרן קבוצות'}</div>
+              </Link>
+            </div>
+          </section>
+        )}
 
-        {/* משימות קרובות */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">הודעות מתוכננות לשעות הקרובות</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-right border-collapse">
-              <thead>
-                <tr className="border-b border-gray-100 text-gray-400 text-sm">
-                  <th className="pb-3 font-medium">יעד / קבוצה</th>
-                  <th className="pb-3 font-medium">סוג מוצר</th>
-                  <th className="pb-3 font-medium">תוכן ההודעה</th>
-                  <th className="pb-3 font-medium">זמן שליחה</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 text-gray-700 text-sm">
-                <tr>
-                  <td className="py-3 font-medium">יוסי כהן</td>
-                  <td className="py-3 text-emerald-600 font-medium">הודעה אישית</td>
-                  <td className="py-3 max-w-xs truncate">תזכורת: הפגישה שלנו נקבעה למחר בשעה...</td>
-                  <td className="py-3 text-left">היום, 15:30</td>
-                </tr>
-                <tr>
-                  <td className="py-3 font-medium">קבוצת "לקוחות VIP"</td>
-                  <td className="py-3 text-blue-600 font-medium">פרסום בקבוצות</td>
-                  <td className="py-3 max-w-xs truncate">מבצעי סוף השבוע החלו! קבלו הצצה...</td>
-                  <td className="py-3 text-left">היום, 17:00</td>
-                </tr>
-              </tbody>
-            </table>
+        <section className={`mb-6 rounded-2xl border p-4 ${isConnected ? 'border-emerald-100 bg-emerald-50' : 'border-amber-100 bg-amber-50'}`}>
+          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-3">
+              <span className={`h-3 w-3 rounded-full ring-4 ${isConnected ? 'bg-emerald-500 ring-emerald-100' : 'bg-amber-500 ring-amber-100'}`} />
+              <div>
+                <div className={`font-bold ${isConnected ? 'text-emerald-950' : 'text-amber-950'}`}>
+                  {isConnected ? 'WhatsApp מחובר' : 'WhatsApp עדיין לא מחובר'}
+                </div>
+                <div className={`text-sm ${isConnected ? 'text-emerald-700' : 'text-amber-700'}`}>
+                  {isConnected
+                    ? data.connection?.phone_number
+                      ? `מספר מחובר: ${data.connection.phone_number}`
+                      : 'החיבור פעיל ומוכן לשליחה'
+                    : 'חבר את החשבון כדי להתחיל לשלוח בפועל'}
+                </div>
+              </div>
+            </div>
+            <Link href="/settings" className={`text-sm font-bold hover:underline ${isConnected ? 'text-emerald-800' : 'text-amber-800'}`}>ניהול חיבור</Link>
           </div>
-        </div>
+        </section>
 
+        <section className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          {[
+            [String(data.scheduledNext24h), 'מתוזמנות ל-24 השעות הקרובות'],
+            [String(data.activeCampaigns), 'קמפיינים לקבוצות'],
+            [String(data.activeBroadcasts), 'קמפייני תפוצה'],
+            [String(data.groups), 'קבוצות זמינות'],
+            [String(data.failed), 'שליחות שנכשלו'],
+          ].map(([value, label]) => (
+            <div key={label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="text-3xl font-black">{value}</div>
+              <div className="mt-1 text-sm font-medium text-slate-500">{label}</div>
+            </div>
+          ))}
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-100 p-5">
+            <div>
+              <h2 className="text-lg font-extrabold">ההודעות הקרובות</h2>
+              <p className="text-sm text-slate-500">הודעות אישיות שמחכות לשליחה</p>
+            </div>
+            <Link href="/scheduler" className="text-sm font-bold text-emerald-700 hover:underline">לכל ההודעות</Link>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {data.upcoming.map((item) => (
+              <div key={item.id} className="grid gap-3 p-5 sm:grid-cols-[1.1fr_2fr_auto] sm:items-center">
+                <div>
+                  <div className="font-bold">{item.recipient_name || 'ללא שם'}</div>
+                  <div className="text-xs text-slate-400">{item.recipient_number}</div>
+                </div>
+                <div className="truncate text-sm text-slate-500">{item.message_body}</div>
+                <div className="font-mono text-sm font-bold text-slate-700">{formatTime(item.scheduled_time)}</div>
+              </div>
+            ))}
+            {data.upcoming.length === 0 && (
+              <div className="p-10 text-center text-sm text-slate-400">אין הודעות שממתינות לשליחה כרגע.</div>
+            )}
+          </div>
+        </section>
       </div>
-    </div>
+    </AppShell>
   );
 }

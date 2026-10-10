@@ -1,0 +1,205 @@
+import 'server-only';
+
+import { createAdminClient } from '@/lib/supabase/admin';
+
+export type AccountLimits = {
+  planCode: string;
+  billingStatus: string;
+  maxPendingMessages: number;
+  maxActiveCampaigns: number;
+  maxGroupsPerCampaign: number;
+  maxBroadcastRecipients: number;
+  monthlySendLimit: number;
+  maxMonthlyChats: number | null;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+};
+
+export async function getAccountLimits(userId: string): Promise<AccountLimits> {
+  const admin = createAdminClient();
+
+  await admin.rpc('refresh_account_period', { p_user_id: userId });
+
+  const { data: existing, error: existingError } = await admin
+    .from('account_limits')
+    .select('plan_code, billing_status, max_pending_messages, max_active_campaigns, max_groups_per_campaign, max_broadcast_recipients, monthly_send_limit, max_monthly_chats, current_period_start, current_period_end')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (existingError) throw new Error(existingError.message);
+
+  if (!existing) {
+    const { data: created, error: createError } = await admin
+      .from('account_limits')
+      .insert({ user_id: userId })
+      .select('plan_code, billing_status, max_pending_messages, max_active_campaigns, max_groups_per_campaign, max_broadcast_recipients, monthly_send_limit, max_monthly_chats, current_period_start, current_period_end')
+      .single();
+
+    if (createError) throw new Error(createError.message);
+    return {
+      planCode: created.plan_code,
+      billingStatus: created.billing_status,
+      maxPendingMessages: created.max_pending_messages,
+      maxActiveCampaigns: created.max_active_campaigns,
+      maxGroupsPerCampaign: created.max_groups_per_campaign,
+      maxBroadcastRecipients: created.max_broadcast_recipients,
+      monthlySendLimit: created.monthly_send_limit,
+      maxMonthlyChats: created.max_monthly_chats,
+      currentPeriodStart: created.current_period_start,
+      currentPeriodEnd: created.current_period_end,
+    };
+  }
+
+  return {
+    planCode: existing.plan_code,
+    billingStatus: existing.billing_status,
+    maxPendingMessages: existing.max_pending_messages,
+    maxActiveCampaigns: existing.max_active_campaigns,
+    maxGroupsPerCampaign: existing.max_groups_per_campaign,
+    maxBroadcastRecipients: existing.max_broadcast_recipients,
+    monthlySendLimit: existing.monthly_send_limit,
+    maxMonthlyChats: existing.max_monthly_chats,
+    currentPeriodStart: existing.current_period_start,
+    currentPeriodEnd: existing.current_period_end,
+  };
+}
+
+export async function assertCanCreatePendingMessage(userId: string) {
+  const admin = createAdminClient();
+  const limits = await getAccountLimits(userId);
+
+  const { count, error } = await admin
+    .from('scheduled_messages')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .in('status', ['pending', 'processing']);
+
+  if (error) throw new Error(error.message);
+
+  if ((count ?? 0) >= limits.maxPendingMessages) {
+    throw new Error(`הגעת למגבלת ${limits.maxPendingMessages} הודעות פעילות בחשבון.`);
+  }
+
+  return limits;
+}
+
+export async function assertCanActivateCampaign(userId: string, excludeCampaignId?: string) {
+  const admin = createAdminClient();
+  const limits = await getAccountLimits(userId);
+
+  let query = admin
+    .from('group_campaigns')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('status', 'active');
+
+  if (excludeCampaignId) {
+    query = query.neq('id', excludeCampaignId);
+  }
+
+  const { count, error } = await query;
+
+  if (error) throw new Error(error.message);
+
+  if ((count ?? 0) >= limits.maxActiveCampaigns) {
+    throw new Error(`הגעת למגבלת ${limits.maxActiveCampaigns} קמפיינים פעילים בחשבון.`);
+  }
+
+  return limits;
+}
+
+export async function assertCampaignGroupLimit(userId: string, groupCount: number) {
+  const limits = await getAccountLimits(userId);
+
+  if (groupCount > limits.maxGroupsPerCampaign) {
+    throw new Error(`אפשר לבחור עד ${limits.maxGroupsPerCampaign} קבוצות בקמפיין אחד.`);
+  }
+
+  return limits;
+}
+
+
+export async function getAccountUsage(userId: string) {
+  const admin = createAdminClient();
+  const limits = await getAccountLimits(userId);
+
+  const [pendingResult, campaignsResult, sentResult, chatUsageResult] = await Promise.all([
+    admin
+      .from('scheduled_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .in('status', ['pending', 'processing']),
+    admin
+      .from('group_campaigns')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'active'),
+    admin
+      .from('send_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'sent')
+      .gte('created_at', limits.currentPeriodStart)
+      .lt('created_at', limits.currentPeriodEnd),
+    admin.rpc('account_chat_usage', { p_user_id: userId }),
+  ]);
+
+  const firstError = [
+    pendingResult.error,
+    campaignsResult.error,
+    sentResult.error,
+    chatUsageResult.error,
+  ].find(Boolean);
+
+  if (firstError) throw new Error(firstError.message);
+
+  return {
+    pendingMessages: pendingResult.count ?? 0,
+    activeCampaigns: campaignsResult.count ?? 0,
+    sentThisPeriod: sentResult.count ?? 0,
+    chatsThisPeriod: Number(chatUsageResult.data ?? 0),
+  };
+}
+
+
+export async function assertAccountOperational(userId: string) {
+  const limits = await getAccountLimits(userId);
+
+  if (!['beta', 'trialing', 'active'].includes(limits.billingStatus)) {
+    throw new Error(
+      limits.billingStatus === 'past_due'
+        ? 'התשלום בחשבון דורש טיפול לפני שאפשר להמשיך לשלוח.'
+        : 'התוכנית בחשבון אינה פעילה כרגע.',
+    );
+  }
+
+  return limits;
+}
+
+
+export async function assertAccountCanSendNow(userId: string) {
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc('account_can_send', {
+    p_user_id: userId,
+  });
+
+  if (error) throw new Error(error.message);
+  if (!data) {
+    const limits = await getAccountLimits(userId);
+    const usage = await getAccountUsage(userId);
+
+    if (!['beta', 'trialing', 'active'].includes(limits.billingStatus)) {
+      throw new Error(
+        limits.billingStatus === 'past_due'
+          ? 'התשלום בחשבון דורש טיפול לפני שאפשר להמשיך לשלוח.'
+          : 'התוכנית בחשבון אינה פעילה כרגע.',
+      );
+    }
+
+    throw new Error(
+      `הגעת למגבלת ${limits.monthlySendLimit} השליחות בתקופה הנוכחית.`,
+    );
+  }
+
+  return true;
+}
