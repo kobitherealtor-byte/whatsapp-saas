@@ -26,6 +26,7 @@ type PersonalJob = {
 type BroadcastJob = {
   id: string;
   claimToken: string;
+  recipientName: string | null;
   recipientNumber: string;
   message: string;
   mediaUrl: string | null;
@@ -68,6 +69,13 @@ async function postJson<T>(
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function renderBroadcastMessage(message: string, recipientName: string | null) {
+  const name = recipientName?.trim() || '';
+  return message
+    .replaceAll('{{name}}', name)
+    .replaceAll('{{שם}}', name);
 }
 
 async function sendJob(
@@ -136,7 +144,7 @@ export async function POST(request: Request) {
       try {
         const idMessage = await sendJob({
           chatId: normalizePersonalChatId(job.recipientNumber),
-          message: job.message,
+          message: renderBroadcastMessage(job.message, job.recipientName),
           mediaUrl: job.mediaUrl,
           connection: job.connection,
         });
@@ -221,7 +229,7 @@ export async function POST(request: Request) {
       }
 
       if (index < broadcastClaim.jobs.length - 1) {
-        await wait(Math.max(1, Math.min(job.delaySeconds || 3, 10)) * 1000);
+        await wait(Math.max(1, Math.min(job.delaySeconds || 3, 5)) * 1000);
       }
     }
 
