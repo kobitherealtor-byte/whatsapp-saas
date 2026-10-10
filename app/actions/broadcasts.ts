@@ -51,6 +51,9 @@ export async function createBroadcastCampaign(input: {
 
   if (!input.name.trim()) throw new Error('שם הקמפיין חסר.');
   if (!input.message.trim()) throw new Error('תוכן ההודעה חסר.');
+  if (input.mediaUrl?.trim()) {
+    await assertFeatureEnabled(user.id, 'media_upload');
+  }
 
   const scheduledFor = parseIsraelLocalDateTimeInput(input.scheduledAt);
   if (Number.isNaN(scheduledFor.getTime())) throw new Error('תאריך או שעה אינם תקינים.');
