@@ -28,7 +28,7 @@ export default function Home() {
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.14),_transparent_34%),radial-gradient(circle_at_bottom_left,_rgba(59,130,246,0.10),_transparent_30%),linear-gradient(to_bottom,_#f8fffc,_#f8fafc_46%,_#ffffff)] text-slate-900" dir="rtl">
       <section className="mx-auto grid min-h-[88vh] max-w-6xl gap-12 px-6 py-16 lg:grid-cols-2 lg:items-center">
         <div>
-          <div className="mb-5 inline-flex rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-semibold text-emerald-300">
+          <div className="mb-5 inline-flex rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-semibold text-emerald-700">
             WhatsApp automation, בלי כאב ראש
           </div>
           <h1 className="max-w-3xl text-4xl font-black leading-tight sm:text-6xl">
@@ -57,7 +57,7 @@ export default function Home() {
               ['3', 'המערכת שולחת'],
             ].map(([number, label]) => (
               <div key={number} className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-                <div className="text-sm font-black text-emerald-300">{number}</div>
+                <div className="text-sm font-black text-emerald-700">{number}</div>
                 <div className="mt-1 font-bold">{label}</div>
               </div>
             ))}
@@ -70,7 +70,7 @@ export default function Home() {
               <div className="text-sm text-slate-500">היום</div>
               <div className="text-xl font-bold">3 שליחות מתוכננות</div>
             </div>
-            <div className="rounded-full bg-emerald-400/15 px-3 py-1 text-sm font-bold text-emerald-300">WhatsApp מחובר</div>
+            <div className="rounded-full bg-emerald-400/15 px-3 py-1 text-sm font-bold text-emerald-700">WhatsApp מחובר</div>
           </div>
           <div className="space-y-3">
             {[
@@ -83,7 +83,7 @@ export default function Home() {
                   <div className="font-bold">{title}</div>
                   <div className="mt-1 text-sm text-slate-500">{type}</div>
                 </div>
-                <div className="font-mono text-emerald-300">{time}</div>
+                <div className="font-mono text-emerald-700">{time}</div>
               </div>
             ))}
           </div>
@@ -97,7 +97,7 @@ export default function Home() {
       <section id="how-it-works" className="border-y border-slate-200 bg-white/75 backdrop-blur">
         <div className="mx-auto max-w-6xl px-6 py-16">
           <div className="max-w-2xl">
-            <div className="text-sm font-bold text-emerald-300">שלושה מנועי שליחה. ממשק אחד.</div>
+            <div className="text-sm font-bold text-emerald-700">שלושה מנועי שליחה. ממשק אחד.</div>
             <h2 className="mt-2 text-3xl font-black sm:text-4xl">פשוט מספיק לעבודה יומיומית</h2>
             <p className="mt-4 leading-7 text-slate-600">
               אין צורך להיכנס למערכות אוטומציה או לעבוד עם מפתחות API. המשתמש מנהל הכל מתוך המערכת.
