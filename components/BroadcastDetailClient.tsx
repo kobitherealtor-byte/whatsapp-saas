@@ -146,6 +146,12 @@ export default function BroadcastDetailClient({
           </div>
 
           <div className="flex flex-wrap gap-2 text-xs font-bold">
+            <a
+              href={`/api/broadcasts/${campaign.id}/export`}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-700 hover:bg-slate-50"
+            >
+              ייצוא CSV
+            </a>
             {campaign.status === 'active' && (
               <button
                 type="button"
