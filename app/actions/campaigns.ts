@@ -39,6 +39,9 @@ export async function createGroupCampaign(input: {
 
   if (!input.name.trim()) throw new Error('שם הקמפיין חסר.');
   if (!input.message.trim()) throw new Error('תוכן ההודעה חסר.');
+  if (input.mediaUrl?.trim()) {
+    await assertFeatureEnabled(user.id, 'media_upload');
+  }
   if (input.groupIds.length === 0) throw new Error('צריך לבחור לפחות קבוצה אחת.');
   if (input.daysOfWeek.length === 0) throw new Error('צריך לבחור לפחות יום פרסום אחד.');
   if (!/^\d{2}:\d{2}$/.test(input.sendTime)) throw new Error('שעת הפרסום אינה תקינה.');
@@ -214,6 +217,9 @@ export async function updateGroupCampaign(
 
   if (!input.name.trim()) throw new Error('שם הקמפיין חסר.');
   if (!input.message.trim()) throw new Error('תוכן ההודעה חסר.');
+  if (input.mediaUrl?.trim()) {
+    await assertFeatureEnabled(user.id, 'media_upload');
+  }
   if (input.groupIds.length === 0) throw new Error('צריך לבחור לפחות קבוצה אחת.');
   if (input.daysOfWeek.length === 0) throw new Error('צריך לבחור לפחות יום פרסום אחד.');
   if (!/^\d{2}:\d{2}$/.test(input.sendTime)) throw new Error('שעת הפרסום אינה תקינה.');
