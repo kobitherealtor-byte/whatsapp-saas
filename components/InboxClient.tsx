@@ -324,8 +324,7 @@ export default function InboxClient({
                   ) : (
                     messages.map((item) => {
                       const outgoing =
-                        item.type.toLowerCase().includes('outgoing') ||
-                        item.senderId === null;
+                        item.type.toLowerCase() === 'outgoing';
 
                       return (
                         <div
