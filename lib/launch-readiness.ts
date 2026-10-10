@@ -81,6 +81,17 @@ export async function getLaunchReadiness() {
         : 'המנגנון בנוי וירוץ עם ה-Worker הראשון.',
     },
     {
+      key: 'green-webhooks',
+      label: 'GREEN realtime fallback',
+      status:
+        process.env.GREEN_API_WEBHOOK_URL &&
+        process.env.GREEN_API_WEBHOOK_TOKEN
+          ? 'ready'
+          : 'pending',
+      detail:
+        'Webhook מאובטח מוכן ל-Native Inbox ולסטטוס חיבור אם Embedded לא יהיה זמין.',
+    },
+    {
       key: 'green-partner',
       label: 'GREEN API Partner',
       status:
