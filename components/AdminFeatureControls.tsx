@@ -8,7 +8,7 @@ import {
   FEATURE_LABELS,
   type FeatureEntitlement,
   type FeatureKey,
-} from '@/lib/features';
+} from '@/lib/feature-definitions';
 
 type Mode = 'inherit' | 'enabled' | 'disabled';
 
