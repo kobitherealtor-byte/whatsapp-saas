@@ -26,8 +26,8 @@ export default function DemoPage() {
             <Link href="/" className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold">
               חזרה לאתר
             </Link>
-            <Link href="/login" className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white">
-              כניסה
+            <Link href="/login?mode=register" className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-black text-white">
+              התחל בחינם
             </Link>
           </div>
         </div>
@@ -36,6 +36,16 @@ export default function DemoPage() {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <div className="mb-8 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm font-semibold text-sky-900">
           זהו מסך הדגמה בלבד. אין כאן WhatsApp מחובר ולא מתבצעות שליחות אמיתיות.
+        </div>
+
+        <div className="mb-8 flex flex-col items-start justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 sm:flex-row sm:items-center">
+          <div>
+            <div className="font-black text-emerald-950">רוצה לנסות את זה על ה-WhatsApp שלך?</div>
+            <div className="mt-1 text-sm text-emerald-800">ההרשמה חינם, עד 3 צ׳אטים שונים, בלי כרטיס אשראי.</div>
+          </div>
+          <Link href="/login?mode=register" className="w-full rounded-xl bg-emerald-600 px-5 py-3 text-center font-black text-white sm:w-auto">
+            פתח חשבון חינם
+          </Link>
         </div>
 
         <header className="mb-8">
@@ -89,6 +99,15 @@ export default function DemoPage() {
               </div>
             ))}
           </section>
+        </div>
+        <div className="mt-10 rounded-3xl bg-slate-950 p-7 text-white sm:flex sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-2xl font-black">הדמו נראה טוב? עכשיו נסה באמת.</h2>
+            <p className="mt-2 text-sm text-slate-300">חבר WhatsApp והתחל בחינם עם עד 3 צ׳אטים.</p>
+          </div>
+          <Link href="/login?mode=register" className="mt-5 inline-flex rounded-2xl bg-emerald-500 px-6 py-3 font-black text-slate-950 sm:mt-0">
+            התחל בחינם
+          </Link>
         </div>
       </div>
     </main>
