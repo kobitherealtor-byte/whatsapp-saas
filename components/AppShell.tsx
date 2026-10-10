@@ -2,15 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import LogoutButton from '@/components/LogoutButton';
 
 const navItems = [
   { href: '/dashboard', label: 'לוח בקרה' },
-  { href: '/scheduler', label: 'הודעות' },
-  { href: '/publisher', label: 'פרסום לקבוצות' },
-  { href: '/broadcasts', label: 'תפוצה' },
-  { href: '/inbox', label: 'Inbox' },
+  { href: '/scheduler', label: 'הודעות', feature: 'scheduler' },
+  { href: '/publisher', label: 'פרסום לקבוצות', feature: 'group_publisher' },
+  { href: '/broadcasts', label: 'תפוצה', feature: 'broadcasts' },
+  { href: '/inbox', label: 'Inbox', feature: 'inbox' },
   { href: '/calendar', label: 'יומן' },
   { href: '/history', label: 'היסטוריה' },
   { href: '/settings', label: 'הגדרות' },
@@ -23,6 +23,26 @@ function isActive(pathname: string, href: string) {
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const [features, setFeatures] = useState<Record<string, boolean> | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    void fetch('/api/me/features', { cache: 'no-store' })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (active && data?.features) setFeatures(data.features);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const visibleNavItems = navItems.filter(
+    (item) => !item.feature || features === null || features[item.feature] !== false,
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900" dir="rtl">
@@ -37,7 +57,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           </Link>
 
           <nav className="hidden items-center gap-1 lg:flex">
-            {navItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -65,7 +85,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white lg:hidden">
         <div className="grid grid-cols-8">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
