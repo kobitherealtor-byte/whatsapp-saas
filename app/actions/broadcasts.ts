@@ -7,6 +7,7 @@ import { wakeAutomationWorker } from '@/lib/automation-wake';
 import { assertAccountOperational, getAccountLimits } from '@/lib/account-limits';
 import { writeAuditEvent } from '@/lib/audit';
 import { parseIsraelLocalDateTimeInput } from '@/lib/timezone';
+import { assertFeatureEnabled } from '@/lib/features';
 
 type RecipientInput = {
   name?: string;
@@ -45,6 +46,7 @@ export async function createBroadcastCampaign(input: {
 }) {
   const { supabase, user } = await requireUser();
   await assertAccountOperational(user.id);
+  await assertFeatureEnabled(user.id, 'broadcasts');
   const limits = await getAccountLimits(user.id);
 
   if (!input.name.trim()) throw new Error('שם הקמפיין חסר.');
@@ -139,6 +141,7 @@ export async function setBroadcastCampaignStatus(
   const admin = createAdminClient();
 
   if (status === 'active') await assertAccountOperational(user.id);
+  await assertFeatureEnabled(user.id, 'broadcasts');
 
   const { data: campaign, error: campaignError } = await admin
     .from('broadcast_campaigns')
@@ -188,6 +191,7 @@ export async function setBroadcastCampaignStatus(
 export async function retryBroadcastRecipient(id: string) {
   const { user } = await requireUser();
   await assertAccountOperational(user.id);
+  await assertFeatureEnabled(user.id, 'broadcasts');
   const admin = createAdminClient();
 
   const { data: recipient, error: recipientError } = await admin
@@ -250,6 +254,7 @@ export async function retryBroadcastRecipient(id: string) {
 export async function retryFailedBroadcastRecipients(campaignId: string) {
   const { user } = await requireUser();
   await assertAccountOperational(user.id);
+  await assertFeatureEnabled(user.id, 'broadcasts');
   const admin = createAdminClient();
 
   const { data: failed, error: failedError } = await admin
