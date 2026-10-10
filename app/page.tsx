@@ -22,6 +22,18 @@ const features = [
 export default function Home() {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.14),_transparent_34%),radial-gradient(circle_at_bottom_left,_rgba(59,130,246,0.10),_transparent_30%),linear-gradient(to_bottom,_#f8fffc,_#f8fafc_46%,_#ffffff)] text-slate-900" dir="rtl">
+      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3">
+          <Link href="/" className="font-black text-slate-900">WhatsApp Plus</Link>
+          <div className="flex items-center gap-3">
+            <span className="hidden text-sm font-bold text-emerald-700 sm:inline">חינם · עד 3 צ׳אטים · בלי כרטיס אשראי</span>
+            <Link href="/login?mode=register" className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-black text-white shadow-sm hover:bg-emerald-500">
+              התחל בחינם
+            </Link>
+          </div>
+        </div>
+      </header>
+
       <section className="mx-auto grid min-h-[88vh] max-w-6xl gap-12 px-6 py-16 lg:grid-cols-2 lg:items-center">
         <div>
           <div className="mb-5 inline-flex rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-semibold text-emerald-700">
@@ -33,9 +45,12 @@ export default function Home() {
           <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
             מערכת פשוטה לעסקים קטנים: הודעות אישיות מתוזמנות ופרסום אוטומטי לקבוצות, עם חיבור WhatsApp פשוט דרך QR — בלי להיכנס ל-Make.
           </p>
+          <div className="mt-4 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-800">
+            מתחילים בחינם · עד 3 צ׳אטים שונים · ללא כרטיס אשראי
+          </div>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/login" className="rounded-2xl bg-emerald-600 px-6 py-3 font-bold text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-500">
-              התחלה בחינם
+            <Link href="/login?mode=register" className="rounded-2xl bg-emerald-600 px-7 py-3.5 font-black text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-500">
+              התחל בחינם — 3 צ׳אטים
             </Link>
             <Link href="/demo" className="rounded-2xl border border-emerald-200 bg-white px-6 py-3 font-bold text-emerald-800 shadow-sm hover:bg-emerald-50">
               צפייה בדמו
@@ -107,6 +122,16 @@ export default function Home() {
               </div>
             ))}
           </div>
+
+          <div className="mt-10 flex flex-col items-center justify-between gap-4 rounded-3xl border border-emerald-200 bg-emerald-50 p-6 sm:flex-row">
+            <div>
+              <div className="text-lg font-black text-emerald-950">רוצים לבדוק על ה-WhatsApp שלכם?</div>
+              <div className="mt-1 text-sm text-emerald-800">פותחים חשבון בחינם, מחברים QR ומתחילים עם עד 3 צ׳אטים.</div>
+            </div>
+            <Link href="/login?mode=register" className="w-full rounded-2xl bg-emerald-600 px-6 py-3 text-center font-black text-white hover:bg-emerald-500 sm:w-auto">
+              פתח חשבון חינם
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -131,13 +156,19 @@ export default function Home() {
               חברו WhatsApp והתחילו לעבוד עם עד 3 אנשי קשר או קבוצות שונים. לאותם צ׳אטים אפשר לשלוח שוב ושוב.
             </p>
           </div>
-          <Link href="/login" className="mt-5 inline-flex rounded-2xl bg-emerald-600 px-5 py-3 font-bold text-white shadow-sm hover:bg-emerald-500 sm:mt-0">
-            פתח חשבון חינם
+          <Link href="/login?mode=register" className="mt-5 inline-flex rounded-2xl bg-emerald-600 px-6 py-3 font-black text-white shadow-sm hover:bg-emerald-500 sm:mt-0">
+            התחל עכשיו בחינם
           </Link>
         </div>
       </section>
 
-      <footer className="border-t border-slate-200 bg-white">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-emerald-200 bg-white/95 p-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur sm:hidden">
+        <Link href="/login?mode=register" className="block rounded-2xl bg-emerald-600 px-5 py-3 text-center font-black text-white">
+          התחל בחינם · עד 3 צ׳אטים
+        </Link>
+      </div>
+
+      <footer className="border-t border-slate-200 bg-white pb-20 sm:pb-0">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-8 text-xs text-slate-500">
           <div>WhatsApp Plus</div>
           <div className="flex flex-wrap gap-4">
