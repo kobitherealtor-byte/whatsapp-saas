@@ -10,6 +10,7 @@ export type AccountLimits = {
   maxGroupsPerCampaign: number;
   maxBroadcastRecipients: number;
   monthlySendLimit: number;
+  maxMonthlyChats: number | null;
   currentPeriodStart: string;
   currentPeriodEnd: string;
 };
@@ -21,7 +22,7 @@ export async function getAccountLimits(userId: string): Promise<AccountLimits> {
 
   const { data: existing, error: existingError } = await admin
     .from('account_limits')
-    .select('plan_code, billing_status, max_pending_messages, max_active_campaigns, max_groups_per_campaign, max_broadcast_recipients, monthly_send_limit, current_period_start, current_period_end')
+    .select('plan_code, billing_status, max_pending_messages, max_active_campaigns, max_groups_per_campaign, max_broadcast_recipients, monthly_send_limit, max_monthly_chats, current_period_start, current_period_end')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -31,7 +32,7 @@ export async function getAccountLimits(userId: string): Promise<AccountLimits> {
     const { data: created, error: createError } = await admin
       .from('account_limits')
       .insert({ user_id: userId })
-      .select('plan_code, billing_status, max_pending_messages, max_active_campaigns, max_groups_per_campaign, max_broadcast_recipients, monthly_send_limit, current_period_start, current_period_end')
+      .select('plan_code, billing_status, max_pending_messages, max_active_campaigns, max_groups_per_campaign, max_broadcast_recipients, monthly_send_limit, max_monthly_chats, current_period_start, current_period_end')
       .single();
 
     if (createError) throw new Error(createError.message);
@@ -43,6 +44,7 @@ export async function getAccountLimits(userId: string): Promise<AccountLimits> {
       maxGroupsPerCampaign: created.max_groups_per_campaign,
       maxBroadcastRecipients: created.max_broadcast_recipients,
       monthlySendLimit: created.monthly_send_limit,
+      maxMonthlyChats: created.max_monthly_chats,
       currentPeriodStart: created.current_period_start,
       currentPeriodEnd: created.current_period_end,
     };
@@ -56,6 +58,7 @@ export async function getAccountLimits(userId: string): Promise<AccountLimits> {
     maxGroupsPerCampaign: existing.max_groups_per_campaign,
     maxBroadcastRecipients: existing.max_broadcast_recipients,
     monthlySendLimit: existing.monthly_send_limit,
+    maxMonthlyChats: existing.max_monthly_chats,
     currentPeriodStart: existing.current_period_start,
     currentPeriodEnd: existing.current_period_end,
   };
@@ -120,7 +123,7 @@ export async function getAccountUsage(userId: string) {
   const admin = createAdminClient();
   const limits = await getAccountLimits(userId);
 
-  const [pendingResult, campaignsResult, sentResult] = await Promise.all([
+  const [pendingResult, campaignsResult, sentResult, chatUsageResult] = await Promise.all([
     admin
       .from('scheduled_messages')
       .select('*', { count: 'exact', head: true })
@@ -138,12 +141,14 @@ export async function getAccountUsage(userId: string) {
       .eq('status', 'sent')
       .gte('created_at', limits.currentPeriodStart)
       .lt('created_at', limits.currentPeriodEnd),
+    admin.rpc('account_chat_usage', { p_user_id: userId }),
   ]);
 
   const firstError = [
     pendingResult.error,
     campaignsResult.error,
     sentResult.error,
+    chatUsageResult.error,
   ].find(Boolean);
 
   if (firstError) throw new Error(firstError.message);
@@ -152,6 +157,7 @@ export async function getAccountUsage(userId: string) {
     pendingMessages: pendingResult.count ?? 0,
     activeCampaigns: campaignsResult.count ?? 0,
     sentThisPeriod: sentResult.count ?? 0,
+    chatsThisPeriod: Number(chatUsageResult.data ?? 0),
   };
 }
 
