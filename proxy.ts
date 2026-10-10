@@ -17,6 +17,7 @@ const protectedPrefixes = [
   '/admin',
   '/onboarding',
   '/billing',
+  '/alerts',
 ];
 
 export async function proxy(request: NextRequest) {
