@@ -33,8 +33,10 @@ function formatTime(timestamp: number) {
 
 export default function InboxClient({
   embeddedUrl,
+  embeddedAllowed = true,
 }: {
   embeddedUrl: string | null;
+  embeddedAllowed?: boolean;
 }) {
   const [mode, setMode] = useState<'native' | 'embedded'>('native');
   const [chats, setChats] = useState<Chat[]>([]);
@@ -197,7 +199,7 @@ export default function InboxClient({
           >
             Inbox מובנה
           </button>
-          <button
+          {embeddedAllowed && <button
             type="button"
             onClick={() => setMode('embedded')}
             className={`rounded-lg px-4 py-2 text-sm font-bold ${
@@ -207,7 +209,7 @@ export default function InboxClient({
             }`}
           >
             WhatsApp Embedded
-          </button>
+          </button>}
         </div>
       </header>
 
