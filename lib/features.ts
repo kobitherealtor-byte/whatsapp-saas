@@ -99,3 +99,41 @@ export async function assertFeatureEnabled(
 
   return entitlement;
 }
+
+
+export async function setBillingFeatureEntitlement(
+  userId: string,
+  featureKey: FeatureKey,
+  enabled: boolean | null,
+  expiresAt?: string | null,
+) {
+  const admin = createAdminClient();
+
+  if (enabled === null) {
+    const { error } = await admin
+      .from('account_feature_overrides')
+      .delete()
+      .eq('user_id', userId)
+      .eq('feature_key', featureKey)
+      .eq('source', 'billing');
+
+    if (error) throw new Error(error.message);
+    return;
+  }
+
+  const { error } = await admin
+    .from('account_feature_overrides')
+    .upsert(
+      {
+        user_id: userId,
+        feature_key: featureKey,
+        enabled,
+        source: 'billing',
+        expires_at: expiresAt ?? null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id,feature_key,source' },
+    );
+
+  if (error) throw new Error(error.message);
+}
