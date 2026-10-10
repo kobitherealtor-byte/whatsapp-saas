@@ -109,6 +109,7 @@ export default function LoginPage() {
               <div className="inline-flex rounded-2xl bg-emerald-500 px-3 py-1 text-xs font-black text-slate-950">WhatsApp Plus</div>
               <h1 className="mt-6 text-4xl font-black leading-tight">התזמונים והקבוצות שלך. בלי להיכנס ל-Make.</h1>
               <p className="mt-4 max-w-md text-sm leading-7 text-slate-300">Scheduler להודעות אישיות ו-Group Publisher לפרסום מסודר בקבוצות WhatsApp.</p>
+              <div className="mt-5 inline-flex rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-xs font-bold text-emerald-200">מתחילים בחינם · עד 3 צ׳אטים · בלי כרטיס אשראי</div>
             </div>
             <p className="text-xs text-slate-500">כל משתמש מקבל סביבת עבודה פרטית ונפרדת.</p>
           </section>
@@ -118,7 +119,7 @@ export default function LoginPage() {
 
             <div className="mt-8">
               <h2 className="text-3xl font-black">{isRegister ? 'פתיחת חשבון' : 'כניסה למערכת'}</h2>
-              <p className="mt-2 text-sm text-slate-500">{isRegister ? 'צור חשבון והתחל להגדיר את ה-WhatsApp שלך.' : 'התחבר כדי לנהל הודעות וקמפיינים.'}</p>
+              <p className="mt-2 text-sm text-slate-500">{isRegister ? 'צור חשבון חינם, חבר WhatsApp והתחל עם עד 3 צ׳אטים.' : 'התחבר כדי לנהל הודעות ופרסומים.'}</p>
             </div>
 
             {!configured && (
@@ -195,7 +196,7 @@ export default function LoginPage() {
                 disabled={loading || !configured}
                 className="w-full rounded-xl bg-emerald-600 px-5 py-3 font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {loading ? 'רגע...' : isRegister ? 'צור חשבון' : 'התחבר'}
+                {loading ? 'רגע...' : isRegister ? 'פתח חשבון חינם' : 'התחבר'}
               </button>
             </form>
 
