@@ -290,7 +290,12 @@ export default function InboxClient({
 
       {error && (
         <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">
-          {error}
+          <div>{error}</div>
+          {needsWhatsappConnection && (
+            <Link href="/settings?connect=1" className="mt-3 inline-flex rounded-xl bg-emerald-600 px-4 py-2 text-sm font-black text-white">
+              חבר WhatsApp וסרוק QR
+            </Link>
+          )}
         </div>
       )}
 
