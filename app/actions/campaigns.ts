@@ -6,6 +6,7 @@ import { nextCampaignRun } from '@/lib/timezone';
 import { wakeAutomationWorker } from '@/lib/automation-wake';
 import { assertAccountOperational, assertCanActivateCampaign, assertCampaignGroupLimit } from '@/lib/account-limits';
 import { writeAuditEvent } from '@/lib/audit';
+import { assertFeatureEnabled } from '@/lib/features';
 
 async function requireUser() {
   const supabase = await createClient();
@@ -31,6 +32,8 @@ export async function createGroupCampaign(input: {
 }) {
   const { supabase, user } = await requireUser();
   await assertAccountOperational(user.id);
+  await assertFeatureEnabled(user.id, 'group_publisher');
+  if (input.skipHolidays) await assertFeatureEnabled(user.id, 'holiday_guard');
   await assertCampaignGroupLimit(user.id, input.groupIds.length);
   await assertCanActivateCampaign(user.id);
 
@@ -139,6 +142,7 @@ export async function setCampaignStatus(
 
   if (status === 'active') {
     await assertAccountOperational(user.id);
+    await assertFeatureEnabled(user.id, 'group_publisher');
     await assertCanActivateCampaign(user.id, id);
 
     const { data: campaign, error } = await supabase
@@ -203,6 +207,9 @@ export async function updateGroupCampaign(
   },
 ) {
   const { supabase, user } = await requireUser();
+  await assertAccountOperational(user.id);
+  await assertFeatureEnabled(user.id, 'group_publisher');
+  if (input.skipHolidays) await assertFeatureEnabled(user.id, 'holiday_guard');
   await assertCampaignGroupLimit(user.id, input.groupIds.length);
 
   if (!input.name.trim()) throw new Error('שם הקמפיין חסר.');
