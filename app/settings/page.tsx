@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import AppShell from '@/components/AppShell';
 
 type ConnectionStatus =
@@ -18,6 +19,8 @@ type StatusPayload = {
 };
 
 export default function SettingsPage() {
+  const searchParams = useSearchParams();
+  const autoConnectStarted = useRef(false);
   const [status, setStatus] = useState<ConnectionStatus>('creating');
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
   const [providerState, setProviderState] = useState<string | null>(null);
@@ -232,6 +235,14 @@ export default function SettingsPage() {
     }
   };
 
+  useEffect(() => {
+    if (searchParams.get('connect') !== '1' || autoConnectStarted.current) return;
+    if (status !== 'disconnected') return;
+
+    autoConnectStarted.current = true;
+    void connect();
+  }, [searchParams, status]);
+
   return (
     <AppShell>
       <div className="mx-auto max-w-3xl pb-20 lg:pb-0">
@@ -262,7 +273,7 @@ export default function SettingsPage() {
               </h2>
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
                 לחץ על הכפתור. המערכת תיצור עבורך GREEN API Instance ייעודי
-                ותציג QR לסריקה.
+                ותציג QR לסריקה. אם הגעת לכאן מתוך שליחה או Inbox, החיבור מתחיל אוטומטית.
               </p>
               <button
                 onClick={connect}
