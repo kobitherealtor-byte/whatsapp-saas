@@ -51,7 +51,7 @@ export default function InboxClient({
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
-  const [needsWhatsappConnection, setNeedsWhatsappConnection] = useState(false);
+  const [needsWhatsappConnection] = useState(true);
 
   const filteredChats = useMemo(() => {
     const q = query.trim().toLowerCase();
