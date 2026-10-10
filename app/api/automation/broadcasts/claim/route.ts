@@ -49,6 +49,7 @@ export async function POST(request: Request) {
       id: string;
       campaign_id: string;
       user_id: string;
+      recipient_name: string | null;
       recipient_number: string;
       message_body: string;
       media_url: string | null;
@@ -60,6 +61,7 @@ export async function POST(request: Request) {
         id: row.id,
         campaignId: row.campaign_id,
         claimToken: row.claim_token,
+        recipientName: row.recipient_name,
         recipientNumber: row.recipient_number,
         message: row.message_body,
         mediaUrl: row.media_url,
