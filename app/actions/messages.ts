@@ -38,6 +38,9 @@ export async function createScheduledMessage(formData: {
   const recipient = formData.recipient.replace(/[^0-9+]/g, '');
   if (recipient.length < 9) throw new Error('מספר הטלפון אינו תקין.');
   if (!formData.body.trim()) throw new Error('תוכן ההודעה חסר.');
+  if (formData.mediaUrl?.trim()) {
+    await assertFeatureEnabled(user.id, 'media_upload');
+  }
 
   const scheduledTime = parseIsraelLocalDateTimeInput(formData.scheduledAt);
   if (Number.isNaN(scheduledTime.getTime())) {
@@ -168,6 +171,9 @@ export async function updateScheduledMessage(
   const recipient = formData.recipient.replace(/[^0-9+]/g, '');
   if (recipient.length < 9) throw new Error('מספר הטלפון אינו תקין.');
   if (!formData.body.trim()) throw new Error('תוכן ההודעה חסר.');
+  if (formData.mediaUrl?.trim()) {
+    await assertFeatureEnabled(user.id, 'media_upload');
+  }
 
   const scheduledTime = parseIsraelLocalDateTimeInput(formData.scheduledAt);
   if (Number.isNaN(scheduledTime.getTime())) {
