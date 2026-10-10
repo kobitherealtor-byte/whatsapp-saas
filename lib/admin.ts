@@ -296,3 +296,42 @@ export async function getAdminCustomerDetail(customerId: string) {
     entitlements,
   };
 }
+
+
+export async function getAdminPlans() {
+  const { admin } = await requireAdmin();
+
+  const [{ data: plans, error: plansError }, { data: features, error: featuresError }] =
+    await Promise.all([
+      admin
+        .from('plan_catalog')
+        .select('plan_code, display_name, max_pending_messages, max_active_campaigns, max_groups_per_campaign, max_broadcast_recipients, monthly_send_limit, is_active, updated_at')
+        .order('created_at', { ascending: true }),
+      admin
+        .from('plan_features')
+        .select('plan_code, feature_key, enabled'),
+    ]);
+
+  if (plansError) throw new Error(plansError.message);
+  if (featuresError) throw new Error(featuresError.message);
+
+  const featureMap = new Map<string, Record<string, boolean>>();
+  for (const row of features ?? []) {
+    const current = featureMap.get(row.plan_code) ?? {};
+    current[row.feature_key] = Boolean(row.enabled);
+    featureMap.set(row.plan_code, current);
+  }
+
+  return (plans ?? []).map((plan) => ({
+    planCode: plan.plan_code,
+    displayName: plan.display_name,
+    maxPendingMessages: plan.max_pending_messages,
+    maxActiveCampaigns: plan.max_active_campaigns,
+    maxGroupsPerCampaign: plan.max_groups_per_campaign,
+    maxBroadcastRecipients: plan.max_broadcast_recipients,
+    monthlySendLimit: plan.monthly_send_limit,
+    isActive: Boolean(plan.is_active),
+    updatedAt: plan.updated_at,
+    features: featureMap.get(plan.plan_code) ?? {},
+  }));
+}
