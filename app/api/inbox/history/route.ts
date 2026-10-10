@@ -29,7 +29,11 @@ export async function POST(request: Request) {
     const body = (await request.json()) as { chatId?: string; count?: number };
     const chatId = body.chatId?.trim();
 
-    if (!chatId || chatId.length > 120) {
+    if (
+      !chatId ||
+      chatId.length > 120 ||
+      !/^[0-9A-Za-z._-]+@(c\.us|g\.us)$/.test(chatId)
+    ) {
       return NextResponse.json({ error: 'שיחה לא תקינה.' }, { status: 400 });
     }
 
