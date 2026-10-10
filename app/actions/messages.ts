@@ -6,6 +6,7 @@ import { wakeAutomationWorker } from '@/lib/automation-wake';
 import { assertAccountOperational, assertCanCreatePendingMessage } from '@/lib/account-limits';
 import { writeAuditEvent } from '@/lib/audit';
 import { parseIsraelLocalDateTimeInput } from '@/lib/timezone';
+import { assertFeatureEnabled } from '@/lib/features';
 
 async function requireUser() {
   const supabase = await createClient();
@@ -31,6 +32,7 @@ export async function createScheduledMessage(formData: {
 }) {
   const { supabase, user } = await requireUser();
   await assertAccountOperational(user.id);
+  await assertFeatureEnabled(user.id, 'scheduler');
   await assertCanCreatePendingMessage(user.id);
 
   const recipient = formData.recipient.replace(/[^0-9+]/g, '');
@@ -105,6 +107,7 @@ export async function cancelScheduledMessage(id: string) {
 export async function duplicateScheduledMessage(id: string) {
   const { supabase, user } = await requireUser();
   await assertAccountOperational(user.id);
+  await assertFeatureEnabled(user.id, 'scheduler');
   await assertCanCreatePendingMessage(user.id);
 
   const { data: source, error: sourceError } = await supabase
@@ -231,6 +234,7 @@ export async function updateScheduledMessage(
 export async function retryScheduledMessage(id: string) {
   const { supabase, user } = await requireUser();
   await assertAccountOperational(user.id);
+  await assertFeatureEnabled(user.id, 'scheduler');
   await assertCanCreatePendingMessage(user.id);
 
   const { data: message, error: messageError } = await supabase
@@ -280,6 +284,7 @@ export async function retryScheduledMessage(id: string) {
 export async function sendScheduledMessageNow(id: string) {
   const { supabase, user } = await requireUser();
   await assertAccountOperational(user.id);
+  await assertFeatureEnabled(user.id, 'scheduler');
 
   const { data: message, error: messageError } = await supabase
     .from('scheduled_messages')
