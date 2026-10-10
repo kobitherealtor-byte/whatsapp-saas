@@ -32,9 +32,14 @@ export default async function AdminPage() {
               תמונת מצב של לקוחות, חיבורי WhatsApp ושימוש — בלי להציג טוקנים או סודות.
             </p>
           </div>
-          <Link href="/system-status" className="text-sm font-bold text-emerald-700 hover:underline">
-            מצב מערכת
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/admin/plans" className="text-sm font-bold text-emerald-700 hover:underline">
+              חבילות ופיצ׳רים
+            </Link>
+            <Link href="/system-status" className="text-sm font-bold text-emerald-700 hover:underline">
+              מצב מערכת
+            </Link>
+          </div>
         </header>
 
         <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
