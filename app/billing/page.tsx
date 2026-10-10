@@ -24,8 +24,14 @@ export default async function BillingPage() {
     Math.round((usage.sentThisPeriod / Math.max(1, limits.monthlySendLimit)) * 100),
   );
 
+  const chatPercent = limits.maxMonthlyChats
+    ? Math.min(100, Math.round((usage.chatsThisPeriod / limits.maxMonthlyChats) * 100))
+    : 0;
+
   const statusLabel =
-    limits.billingStatus === 'beta'
+    limits.planCode === 'free'
+      ? 'חינם'
+      : limits.billingStatus === 'beta'
       ? 'Beta'
       : limits.billingStatus === 'trialing'
         ? 'תקופת ניסיון'
@@ -51,7 +57,7 @@ export default async function BillingPage() {
             <div>
               <div className="text-sm font-semibold text-slate-500">תוכנית נוכחית</div>
               <div className="mt-1 text-3xl font-black">
-                {limits.planCode === 'beta' ? 'Beta' : limits.planCode}
+                {limits.planCode === 'free' ? 'Free' : limits.planCode === 'beta' ? 'Beta' : limits.planCode}
               </div>
             </div>
             <span
@@ -77,6 +83,29 @@ export default async function BillingPage() {
               />
             </div>
           </div>
+
+          {limits.maxMonthlyChats && (
+            <div className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+              <div className="flex items-center justify-between text-sm font-black text-emerald-950">
+                <span>צ׳אטים במסלול Free</span>
+                <span>{usage.chatsThisPeriod} / {limits.maxMonthlyChats}</span>
+              </div>
+              <div className="mt-2 h-3 overflow-hidden rounded-full bg-white">
+                <div
+                  className="h-full rounded-full bg-emerald-500"
+                  style={{ width: `${chatPercent}%` }}
+                />
+              </div>
+              <p className="mt-3 text-sm leading-6 text-emerald-900">
+                אפשר לשלוח כמה הודעות שרוצים לאותם צ׳אטים. המסלול החינמי מוגבל לעד {limits.maxMonthlyChats} אנשי קשר או קבוצות שונים בתקופה.
+              </p>
+              {usage.chatsThisPeriod >= limits.maxMonthlyChats && (
+                <p className="mt-2 text-sm font-black text-amber-900">
+                  הגעת למגבלת החינם. הודעות לצ׳אטים שכבר השתמשת בהם ימשיכו לעבוד; צ׳אט חדש יחכה לשדרוג או לתקופה הבאה.
+                </p>
+              )}
+            </div>
+          )}
         </section>
 
         <section className="grid gap-4 sm:grid-cols-2">
@@ -122,10 +151,9 @@ export default async function BillingPage() {
         </section>
 
         <section className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-          <h2 className="font-black text-amber-950">התמחור המסחרי עדיין לא הופעל</h2>
+          <h2 className="font-black text-amber-950">מתחילים בחינם</h2>
           <p className="mt-2 text-sm leading-6 text-amber-900">
-            לא נציג מחירים או כפתור תשלום לפני שנבחר ספק סליקה ונחליט על החבילות הסופיות.
-            שכבת ה-Billing, המגבלות וסטטוס החשבון כבר מחוברות למנוע השליחה.
+            כל משתמש חדש מתחיל במסלול Free עם עד 3 צ׳אטים שונים. מסלול בתשלום יוצג כאן אחרי שנחבר את ספק הסליקה ונקבע את המחיר הסופי.
           </p>
         </section>
 
