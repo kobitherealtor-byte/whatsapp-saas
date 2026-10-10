@@ -32,6 +32,30 @@ export default async function Dashboard() {
           </div>
         </header>
 
+        {data.alerts.length > 0 && (
+          <section className="mb-6 space-y-3">
+            {data.alerts.slice(0, 4).map((alert) => (
+              <Link
+                key={alert.id}
+                href={alert.href || '/alerts'}
+                className={`block rounded-2xl border p-4 shadow-sm ${
+                  alert.severity === 'critical'
+                    ? 'border-red-200 bg-red-50'
+                    : alert.severity === 'warning'
+                      ? 'border-amber-200 bg-amber-50'
+                      : 'border-sky-200 bg-sky-50'
+                }`}
+              >
+                <div className="font-black">{alert.title}</div>
+                <div className="mt-1 text-sm text-slate-600">{alert.message}</div>
+              </Link>
+            ))}
+            <Link href="/alerts" className="inline-flex text-sm font-bold text-emerald-700 hover:underline">
+              לכל ההתראות
+            </Link>
+          </section>
+        )}
+
         {(!data.businessName || !isConnected || data.groups === 0) && (
           <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="mb-4">
