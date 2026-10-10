@@ -26,9 +26,19 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [features, setFeatures] = useState<Record<string, boolean> | null>(null);
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
+  const [whatsappStatus, setWhatsappStatus] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
+
+    void fetch('/api/whatsapp/status', { cache: 'no-store' })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (active) setWhatsappStatus(data?.status ?? 'disconnected');
+      })
+      .catch(() => {
+        if (active) setWhatsappStatus('disconnected');
+      });
 
     void fetch('/api/me/features', { cache: 'no-store' })
       .then((response) => (response.ok ? response.json() : null))
@@ -93,7 +103,25 @@ export default function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">{children}</main>
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
+        {whatsappStatus && whatsappStatus !== 'connected' && pathname !== '/settings' && (
+          <div className="mb-5 flex flex-col justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm sm:flex-row sm:items-center">
+            <div>
+              <div className="font-black text-amber-950">WhatsApp לא מחובר</div>
+              <div className="mt-1 text-sm text-amber-800">
+                כדי לשלוח הודעות, לפתוח שיחות או לפרסם לקבוצות צריך לחבר את WhatsApp.
+              </div>
+            </div>
+            <Link
+              href="/settings?connect=1"
+              className="shrink-0 rounded-xl bg-emerald-600 px-5 py-2.5 text-center text-sm font-black text-white hover:bg-emerald-700"
+            >
+              חבר WhatsApp עכשיו
+            </Link>
+          </div>
+        )}
+        {children}
+      </main>
 
       {mobileMoreOpen && (
         <div className="fixed inset-0 z-40 bg-slate-950/25 lg:hidden" onClick={() => setMobileMoreOpen(false)}>
