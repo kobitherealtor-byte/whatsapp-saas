@@ -3,7 +3,8 @@ import Link from 'next/link';
 import AppShell from '@/components/AppShell';
 import AdminCustomerControls from '@/components/AdminCustomerControls';
 import AdminFeatureControls from '@/components/AdminFeatureControls';
-import { getAdminCustomerDetail } from '@/lib/admin';
+import AdminBillingSimulator from '@/components/AdminBillingSimulator';
+import { getAdminCustomerDetail, getAdminPlans } from '@/lib/admin';
 
 function formatDate(value: string | null) {
   if (!value) return '—';
@@ -33,6 +34,8 @@ export default async function AdminCustomerPage({
     }
     throw error;
   }
+
+  const plans = await getAdminPlans();
 
   return (
     <AppShell>
@@ -99,7 +102,13 @@ export default async function AdminCustomerPage({
           </section>
         </div>
 
-        <div className="mt-5">
+        <div className="mt-5 grid gap-5 xl:grid-cols-2">
+          <AdminBillingSimulator
+            customerId={data.customer.id}
+            plans={plans}
+            currentPlan={data.limits.planCode}
+            currentStatus={data.limits.billingStatus}
+          />
           <AdminFeatureControls
             customerId={data.customer.id}
             entitlements={data.entitlements}
