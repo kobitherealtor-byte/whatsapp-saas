@@ -42,29 +42,47 @@ export async function POST(request: Request) {
         { onConflict: 'task_key' },
       );
 
-    const cutoff = new Date(
-      Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000,
-    ).toISOString();
+    const cutoffMs =
+      Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
-    const { data: objects, error: objectError } = await admin
-      .schema('storage')
-      .from('objects')
-      .select('name, created_at')
-      .eq('bucket_id', 'message-media')
-      .lt('created_at', cutoff)
-      .limit(500);
+    const bucket = admin.storage.from('message-media');
+    const { data: rootEntries, error: rootError } = await bucket.list('', {
+      limit: 1000,
+      sortBy: { column: 'name', order: 'asc' },
+    });
 
-    if (objectError) throw objectError;
+    if (rootError) throw rootError;
 
-    const names = (objects ?? [])
-      .map((object) => object.name as string)
-      .filter(Boolean);
+    const names: string[] = [];
+
+    for (const entry of rootEntries ?? []) {
+      if (names.length >= 500) break;
+
+      // Upload paths are always <user-id>/<uuid>.<extension>.
+      const { data: folderEntries, error: folderError } = await bucket.list(
+        entry.name,
+        {
+          limit: 1000,
+          sortBy: { column: 'created_at', order: 'asc' },
+        },
+      );
+
+      if (folderError) throw folderError;
+
+      for (const object of folderEntries ?? []) {
+        if (names.length >= 500) break;
+        const createdAt = object.created_at
+          ? new Date(object.created_at).getTime()
+          : Number.POSITIVE_INFINITY;
+
+        if (createdAt < cutoffMs) {
+          names.push(`${entry.name}/${object.name}`);
+        }
+      }
+    }
 
     if (names.length > 0) {
-      const { error: removeError } = await admin.storage
-        .from('message-media')
-        .remove(names);
-
+      const { error: removeError } = await bucket.remove(names);
       if (removeError) throw removeError;
     }
 
