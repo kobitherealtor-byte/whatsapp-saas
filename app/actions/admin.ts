@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin';
 import { writeAuditEvent } from '@/lib/audit';
 import { FEATURE_KEYS, type FeatureKey } from '@/lib/feature-definitions';
+import { applyBillingState } from '@/lib/billing';
 
 const allowedStatuses = new Set([
   'beta',
@@ -266,4 +267,53 @@ export async function applyCustomerPlan(
   revalidatePath('/admin');
   revalidatePath(`/admin/${customerId}`);
   revalidatePath('/billing');
+}
+
+
+export async function simulateBillingEvent(input: {
+  customerId: string;
+  planCode: string;
+  billingStatus: 'beta' | 'trialing' | 'active' | 'past_due' | 'cancelled';
+  enabledAddons: FeatureKey[];
+}) {
+  const { user: adminUser } = await requireAdmin();
+
+  const eventId = 'mock_' + crypto.randomUUID();
+
+  await applyBillingState({
+    userId: input.customerId,
+    provider: 'mock',
+    eventId,
+    eventType: 'admin.mock_billing_event',
+    planCode: input.planCode,
+    billingStatus: input.billingStatus,
+    enabledAddons: input.enabledAddons,
+    externalCustomerId: 'mock_customer_' + input.customerId,
+    externalSubscriptionId: 'mock_subscription_' + input.customerId,
+    payload: {
+      source: 'admin',
+      adminUserId: adminUser.id,
+      enabledAddons: input.enabledAddons,
+    },
+  });
+
+  await writeAuditEvent({
+    userId: adminUser.id,
+    eventType: 'admin.billing.mock_applied',
+    entityType: 'billing_accounts',
+    entityId: input.customerId,
+    metadata: {
+      customerId: input.customerId,
+      planCode: input.planCode,
+      billingStatus: input.billingStatus,
+      enabledAddons: input.enabledAddons,
+      eventId,
+    },
+  });
+
+  revalidatePath('/admin');
+  revalidatePath(\`/admin/\${input.customerId}\`);
+  revalidatePath('/billing');
+
+  return { eventId };
 }
