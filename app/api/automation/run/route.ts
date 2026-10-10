@@ -144,7 +144,7 @@ export async function POST(request: Request) {
       try {
         const idMessage = await sendJob({
           chatId: normalizePersonalChatId(job.recipientNumber),
-          message: renderBroadcastMessage(job.message, job.recipientName),
+          message: job.message,
           mediaUrl: job.mediaUrl,
           connection: job.connection,
         });
@@ -193,7 +193,7 @@ export async function POST(request: Request) {
       try {
         const idMessage = await sendJob({
           chatId: normalizePersonalChatId(job.recipientNumber),
-          message: job.message,
+          message: renderBroadcastMessage(job.message, job.recipientName),
           mediaUrl: job.mediaUrl,
           connection: job.connection,
         });
