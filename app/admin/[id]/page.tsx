@@ -131,6 +131,36 @@ export default async function AdminCustomerPage({
             )}
           </div>
         </section>
+
+        <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-black">Audit trail</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            פעולות אחרונות שנרשמו לחשבון ולניהול שלו.
+          </p>
+          <div className="mt-4 divide-y divide-slate-100">
+            {data.recentAudit.map((event) => (
+              <div key={event.id} className="grid gap-2 py-3 sm:grid-cols-[1.3fr_1fr_1fr] sm:items-center">
+                <div>
+                  <div className="font-bold">{event.event_type}</div>
+                  <div className="mt-1 text-xs text-slate-400">
+                    {event.entity_type || '—'} {event.entity_id ? '· ' + event.entity_id : ''}
+                  </div>
+                </div>
+                <div className="truncate text-xs text-slate-500">
+                  {event.metadata ? JSON.stringify(event.metadata) : '—'}
+                </div>
+                <div className="text-xs text-slate-400">
+                  {formatDate(event.created_at)}
+                </div>
+              </div>
+            ))}
+            {data.recentAudit.length === 0 && (
+              <div className="py-8 text-center text-sm text-slate-400">
+                אין אירועי Audit להצגה.
+              </div>
+            )}
+          </div>
+        </section>
       </div>
     </AppShell>
   );
