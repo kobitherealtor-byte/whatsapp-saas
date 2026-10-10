@@ -6,9 +6,9 @@ import { setCustomerFeatureOverride } from '@/app/actions/admin';
 import {
   FEATURE_KEYS,
   FEATURE_LABELS,
-  type FeatureEntitlement,
   type FeatureKey,
 } from '@/lib/feature-definitions';
+import type { FeatureEntitlement } from '@/lib/features';
 
 type Mode = 'inherit' | 'enabled' | 'disabled';
 
