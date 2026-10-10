@@ -5,7 +5,10 @@ import { sendGreenApiFileByUrl, sendGreenApiText } from '@/lib/green-api';
 import { assertUserRateLimit } from '@/lib/rate-limit';
 import { safeUserApiError } from '@/lib/api-error';
 import { assertFeatureEnabled } from '@/lib/features';
-import { assertAccountOperational } from '@/lib/account-limits';
+import {
+  assertAccountCanSendNow,
+  assertAccountOperational,
+} from '@/lib/account-limits';
 import { writeAuditEvent } from '@/lib/audit';
 
 export async function POST(request: Request) {
@@ -22,6 +25,7 @@ export async function POST(request: Request) {
     await assertFeatureEnabled(user.id, 'inbox');
 
     await assertAccountOperational(user.id);
+    await assertAccountCanSendNow(user.id);
     await assertUserRateLimit({
       userId: user.id,
       bucket: 'inbox-send',
@@ -39,7 +43,11 @@ export async function POST(request: Request) {
     const message = body.message?.trim() || '';
     const mediaUrl = body.mediaUrl?.trim() || null;
 
-    if (!chatId || chatId.length > 120) {
+    if (
+      !chatId ||
+      chatId.length > 120 ||
+      !/^[0-9A-Za-z._-]+@(c\.us|g\.us)$/.test(chatId)
+    ) {
       return NextResponse.json({ error: 'שיחה לא תקינה.' }, { status: 400 });
     }
     if (!message && !mediaUrl) {
@@ -48,6 +56,22 @@ export async function POST(request: Request) {
 
     if (mediaUrl) {
       await assertFeatureEnabled(user.id, 'media_upload');
+
+      const parsedMedia = new URL(mediaUrl);
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const allowedMediaHost = supabaseUrl ? new URL(supabaseUrl).host : null;
+
+      if (
+        parsedMedia.protocol !== 'https:' ||
+        !allowedMediaHost ||
+        parsedMedia.host !== allowedMediaHost ||
+        !parsedMedia.pathname.includes('/storage/v1/object/public/message-media/')
+      ) {
+        return NextResponse.json(
+          { error: 'קובץ המדיה חייב להגיע מהאחסון המאובטח של המערכת.' },
+          { status: 400 },
+        );
+      }
     }
 
     const admin = createAdminClient();
@@ -78,28 +102,54 @@ export async function POST(request: Request) {
           message,
         });
 
-    await admin.from('send_logs').insert({
-      user_id: user.id,
-      entity_type: 'inbox',
-      entity_id: user.id,
-      recipient_id: chatId,
-      status: 'sent',
-      sent_at: new Date().toISOString(),
-      kind: 'inbox',
-      ref_id: user.id,
-      destination: chatId,
-      detail: message,
-      external_message_id: externalMessageId,
-      created_at: new Date().toISOString(),
-    });
+    const now = new Date().toISOString();
 
-    await writeAuditEvent({
-      userId: user.id,
-      eventType: 'inbox.message.sent',
-      entityType: 'inbox',
-      entityId: user.id,
-      metadata: { chatId, hasMedia: Boolean(mediaUrl) },
-    });
+    try {
+      const { error: logError } = await admin.from('send_logs').insert({
+        user_id: user.id,
+        entity_type: 'inbox',
+        entity_id: user.id,
+        recipient_id: chatId,
+        status: 'sent',
+        sent_at: now,
+        kind: 'inbox',
+        ref_id: user.id,
+        destination: chatId,
+        detail: message,
+        external_message_id: externalMessageId,
+        created_at: now,
+      });
+
+      if (logError) {
+        console.error('Inbox send log failed after provider success', {
+          userId: user.id,
+          externalMessageId,
+          code: logError.code,
+        });
+      }
+    } catch (logError) {
+      console.error('Inbox send log threw after provider success', {
+        userId: user.id,
+        externalMessageId,
+        error: logError instanceof Error ? logError.message : 'unknown',
+      });
+    }
+
+    try {
+      await writeAuditEvent({
+        userId: user.id,
+        eventType: 'inbox.message.sent',
+        entityType: 'inbox',
+        entityId: user.id,
+        metadata: { chatId, hasMedia: Boolean(mediaUrl), externalMessageId },
+      });
+    } catch (auditError) {
+      console.error('Inbox audit failed after provider success', {
+        userId: user.id,
+        externalMessageId,
+        error: auditError instanceof Error ? auditError.message : 'unknown',
+      });
+    }
 
     return NextResponse.json({ ok: true, externalMessageId });
   } catch (error) {
