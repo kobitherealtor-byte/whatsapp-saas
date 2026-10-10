@@ -15,14 +15,12 @@ export default async function OnboardingPage() {
     connectionResult,
     groupsResult,
     messagesResult,
-    broadcastsResult,
     campaignsResult,
   ] = await Promise.all([
     supabase.from('profiles').select('business_name').eq('id', user.id).maybeSingle(),
     supabase.from('whatsapp_connections').select('status, phone_number').eq('user_id', user.id).maybeSingle(),
     supabase.from('whatsapp_groups').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_active', true).eq('user_enabled', true),
     supabase.from('scheduled_messages').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
-    supabase.from('broadcast_campaigns').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
     supabase.from('group_campaigns').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
   ]);
 
@@ -31,7 +29,6 @@ export default async function OnboardingPage() {
   const groupsReady = (groupsResult.count ?? 0) > 0;
   const firstAutomationReady =
     (messagesResult.count ?? 0) > 0 ||
-    (broadcastsResult.count ?? 0) > 0 ||
     (campaignsResult.count ?? 0) > 0;
 
   const states = {
@@ -73,7 +70,7 @@ export default async function OnboardingPage() {
       key: 'firstAutomationReady' as const,
       number: '4',
       title: 'יצירת שליחה ראשונה',
-      description: 'תזמן הודעה, צור תפוצה או קמפיין פרסום לקבוצות.',
+      description: 'תזמן הודעה אישית או צור פרסום אוטומטי לקבוצות.',
       href: '/scheduler/new',
       action: 'צור שליחה ראשונה',
     },
@@ -164,12 +161,9 @@ export default async function OnboardingPage() {
           })}
         </div>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
           <Link href="/scheduler/new" className="rounded-2xl border border-slate-200 bg-white p-4 text-center font-bold hover:bg-slate-50">
-            הודעה אישית
-          </Link>
-          <Link href="/broadcasts/new" className="rounded-2xl border border-slate-200 bg-white p-4 text-center font-bold hover:bg-slate-50">
-            קמפיין תפוצה
+            תזמון הודעה אישית
           </Link>
           <Link href="/publisher/new" className="rounded-2xl border border-slate-200 bg-white p-4 text-center font-bold hover:bg-slate-50">
             פרסום לקבוצות
