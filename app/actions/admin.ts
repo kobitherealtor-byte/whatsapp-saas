@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin';
 import { writeAuditEvent } from '@/lib/audit';
-import { FEATURE_KEYS, type FeatureKey } from '@/lib/features';
+import { FEATURE_KEYS, type FeatureKey } from '@/lib/feature-definitions';
 
 const allowedStatuses = new Set([
   'beta',
