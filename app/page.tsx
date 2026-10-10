@@ -42,6 +42,9 @@ export default function Home() {
             <Link href="/login" className="rounded-2xl bg-emerald-600 px-6 py-3 font-bold text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-500">
               כניסה למערכת
             </Link>
+            <Link href="/demo" className="rounded-2xl border border-emerald-200 bg-white px-6 py-3 font-bold text-emerald-800 shadow-sm hover:bg-emerald-50">
+              צפייה בדמו
+            </Link>
             <a href="#how-it-works" className="rounded-2xl border border-slate-200 bg-white px-6 py-3 font-bold text-slate-700 shadow-sm hover:bg-slate-50">
               איך זה עובד
             </a>
@@ -138,6 +141,18 @@ export default function Home() {
           </Link>
         </div>
       </section>
+
+      <footer className="border-t border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-8 text-xs text-slate-500">
+          <div>WhatsApp Plus · Beta</div>
+          <div className="flex flex-wrap gap-4">
+            <Link href="/terms" className="hover:text-emerald-700">תנאי שימוש</Link>
+            <Link href="/privacy" className="hover:text-emerald-700">פרטיות</Link>
+            <Link href="/acceptable-use" className="hover:text-emerald-700">שימוש מקובל</Link>
+            <Link href="/cancellation" className="hover:text-emerald-700">ביטול והחזרים</Link>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }
