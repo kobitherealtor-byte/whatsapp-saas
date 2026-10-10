@@ -31,6 +31,10 @@ export default function LoginPage() {
     const next = params.get('next');
     if (next?.startsWith('/')) setNextPath(next);
 
+    if (params.get('mode') === 'register') {
+      setIsRegister(true);
+    }
+
     const reason = params.get('error');
     if (reason === 'supabase_not_configured') {
       setError('Supabase עדיין לא מוגדר בסביבת ההרצה.');
@@ -118,7 +122,12 @@ export default function LoginPage() {
             <Link href="/" className="text-sm font-bold text-emerald-700 hover:underline">← חזרה</Link>
 
             <div className="mt-8">
-              <h2 className="text-3xl font-black">{isRegister ? 'פתיחת חשבון' : 'כניסה למערכת'}</h2>
+              {isRegister && (
+                <div className="mb-3 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800">
+                  חינם · עד 3 צ׳אטים · בלי כרטיס אשראי
+                </div>
+              )}
+              <h2 className="text-3xl font-black">{isRegister ? 'התחל בחינם' : 'כניסה למערכת'}</h2>
               <p className="mt-2 text-sm text-slate-500">{isRegister ? 'צור חשבון חינם, חבר WhatsApp והתחל עם עד 3 צ׳אטים.' : 'התחבר כדי לנהל הודעות ופרסומים.'}</p>
             </div>
 
@@ -211,7 +220,7 @@ export default function LoginPage() {
                 }}
                 className="font-black text-emerald-700 hover:underline"
               >
-                {isRegister ? 'התחבר' : 'פתח חשבון'}
+                {isRegister ? 'התחבר' : 'התחל בחינם'}
               </button>
             </div>
           </section>
