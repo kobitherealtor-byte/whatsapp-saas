@@ -169,3 +169,31 @@ export async function assertAccountOperational(userId: string) {
 
   return limits;
 }
+
+
+export async function assertAccountCanSendNow(userId: string) {
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc('account_can_send', {
+    p_user_id: userId,
+  });
+
+  if (error) throw new Error(error.message);
+  if (!data) {
+    const limits = await getAccountLimits(userId);
+    const usage = await getAccountUsage(userId);
+
+    if (!['beta', 'trialing', 'active'].includes(limits.billingStatus)) {
+      throw new Error(
+        limits.billingStatus === 'past_due'
+          ? 'התשלום בחשבון דורש טיפול לפני שאפשר להמשיך לשלוח.'
+          : 'התוכנית בחשבון אינה פעילה כרגע.',
+      );
+    }
+
+    throw new Error(
+      `הגעת למגבלת ${limits.monthlySendLimit} השליחות בתקופה הנוכחית.`,
+    );
+  }
+
+  return true;
+}
