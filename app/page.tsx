@@ -6,10 +6,6 @@ const features = [
     text: 'מתזמנים הודעה אישית ללקוח לתאריך ושעה מדויקים, עורכים, מבטלים או שולחים מיד.',
   },
   {
-    title: 'Broadcast Campaigns',
-    text: 'מעלים רשימת נמענים ושולחים הודעה אישית לכל מספר עם תזמון, קצב שליחה ומעקב.',
-  },
-  {
     title: 'Group Publisher',
     text: 'מגדירים פעם אחת קבוצות, ימים ושעה — והמערכת מפרסמת לפי התוכנית באופן אוטומטי.',
   },
@@ -32,15 +28,14 @@ export default function Home() {
             WhatsApp automation, בלי כאב ראש
           </div>
           <h1 className="max-w-3xl text-4xl font-black leading-tight sm:text-6xl">
-            מתזמנים, מפיצים ומנהלים WhatsApp — במקום אחד.
+            מתזמנים הודעות ומפרסמים לקבוצות WhatsApp — במקום אחד.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
-            מערכת SaaS לעסקים קטנים שרוצים לעבוד עם WhatsApp בצורה מסודרת:
-            הודעות אישיות מתוזמנות, קמפייני תפוצה, פרסום קבוע לקבוצות, בקרה על שליחות וחיבור פשוט דרך QR.
+            מערכת פשוטה לעסקים קטנים: הודעות אישיות מתוזמנות ופרסום אוטומטי לקבוצות, עם חיבור WhatsApp פשוט דרך QR — בלי להיכנס ל-Make.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/login" className="rounded-2xl bg-emerald-600 px-6 py-3 font-bold text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-500">
-              כניסה למערכת
+              התחלה בחינם
             </Link>
             <Link href="/demo" className="rounded-2xl border border-emerald-200 bg-white px-6 py-3 font-bold text-emerald-800 shadow-sm hover:bg-emerald-50">
               צפייה בדמו
@@ -97,7 +92,7 @@ export default function Home() {
       <section id="how-it-works" className="border-y border-slate-200 bg-white/75 backdrop-blur">
         <div className="mx-auto max-w-6xl px-6 py-16">
           <div className="max-w-2xl">
-            <div className="text-sm font-bold text-emerald-700">שלושה מנועי שליחה. ממשק אחד.</div>
+            <div className="text-sm font-bold text-emerald-700">שני כלים. ממשק אחד.</div>
             <h2 className="mt-2 text-3xl font-black sm:text-4xl">פשוט מספיק לעבודה יומיומית</h2>
             <p className="mt-4 leading-7 text-slate-600">
               אין צורך להיכנס למערכות אוטומציה או לעבוד עם מפתחות API. המשתמש מנהל הכל מתוך המערכת.
@@ -131,20 +126,20 @@ export default function Home() {
 
         <div className="mt-12 rounded-3xl border border-emerald-400/20 bg-emerald-400/10 p-7 sm:flex sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-2xl font-black">המוצר נמצא כעת בשלב Beta</h2>
+            <h2 className="text-2xl font-black">מתחילים בחינם — בלי כרטיס אשראי</h2>
             <p className="mt-2 text-sm leading-6 text-emerald-800">
-              אנחנו משלימים את חיבורי הספק והבדיקות לפני פתיחה מסחרית מלאה.
+              חברו WhatsApp והתחילו לעבוד עם עד 3 אנשי קשר או קבוצות שונים. לאותם צ׳אטים אפשר לשלוח שוב ושוב.
             </p>
           </div>
           <Link href="/login" className="mt-5 inline-flex rounded-2xl bg-emerald-600 px-5 py-3 font-bold text-white shadow-sm hover:bg-emerald-500 sm:mt-0">
-            כניסה ל-Beta
+            פתח חשבון חינם
           </Link>
         </div>
       </section>
 
       <footer className="border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-8 text-xs text-slate-500">
-          <div>WhatsApp Plus · Beta</div>
+          <div>WhatsApp Plus</div>
           <div className="flex flex-wrap gap-4">
             <Link href="/terms" className="hover:text-emerald-700">תנאי שימוש</Link>
             <Link href="/privacy" className="hover:text-emerald-700">פרטיות</Link>
