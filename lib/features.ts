@@ -58,11 +58,31 @@ export async function getFeatureEntitlements(userId: string) {
   );
 
   const now = Date.now();
-  const overrideMap = new Map(
-    (overrides ?? [])
-      .filter((row) => !row.expires_at || new Date(row.expires_at).getTime() > now)
-      .map((row) => [row.feature_key as FeatureKey, row]),
+  const activeOverrides = (overrides ?? []).filter(
+    (row) => !row.expires_at || new Date(row.expires_at).getTime() > now,
   );
+
+  const overrideMap = new Map<
+    FeatureKey,
+    (typeof activeOverrides)[number]
+  >();
+
+  const precedence: Record<string, number> = {
+    billing: 1,
+    admin: 2,
+    system: 3,
+  };
+
+  for (const row of activeOverrides) {
+    const key = row.feature_key as FeatureKey;
+    const current = overrideMap.get(key);
+    if (
+      !current ||
+      (precedence[row.source] ?? 0) > (precedence[current.source] ?? 0)
+    ) {
+      overrideMap.set(key, row);
+    }
+  }
 
   const entitlements = {} as Record<FeatureKey, FeatureEntitlement>;
 
