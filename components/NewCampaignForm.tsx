@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createGroupCampaign } from '@/app/actions/campaigns';
 import type { WhatsAppGroupRow } from '@/lib/data';
 import MediaUpload from '@/components/MediaUpload';
+import { useFeatureFlags } from '@/lib/use-feature-flags';
 
 const days = [
   { label: 'א׳', value: 0 },
@@ -28,6 +29,9 @@ export default function NewCampaignForm({ groups }: { groups: WhatsAppGroupRow[]
   const [skipHolidays, setSkipHolidays] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const features = useFeatureFlags();
+  const holidayGuardAllowed =
+    features === null || features.holiday_guard !== false;
 
   const toggleGroup = (id: string) => {
     setSelectedGroups((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
@@ -117,8 +121,20 @@ export default function NewCampaignForm({ groups }: { groups: WhatsAppGroupRow[]
       </div>
 
       <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-        <input type="checkbox" checked={skipHolidays} onChange={(e) => setSkipHolidays(e.target.checked)} className="h-4 w-4" />
-        <span><span className="block text-sm font-bold">דלג על חגים</span><span className="text-xs text-slate-500">Holiday Guard ימנע פרסום במועדים שיוגדרו כחג.</span></span>
+        <input
+          type="checkbox"
+          checked={skipHolidays && holidayGuardAllowed}
+          disabled={!holidayGuardAllowed}
+          onChange={(e) => setSkipHolidays(e.target.checked)}
+          className="h-4 w-4"
+        />
+        <span><span className="block text-sm font-bold">דלג על חגים</span><span className="text-xs text-slate-500">Holiday Guard ימנע פרסום במועדים שיוגדרו כחג.</span>
+          {!holidayGuardAllowed && (
+            <span className="mt-1 block text-xs font-semibold text-amber-700">
+              Holiday Guard אינו כלול כרגע בחבילה.
+            </span>
+          )}
+        </span>
       </label>
 
       <button type="submit" disabled={loading || groups.length === 0} className="w-full rounded-xl bg-slate-900 px-5 py-3 font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">
